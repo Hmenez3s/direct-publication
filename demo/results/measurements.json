@@ -1,0 +1,214 @@
+{
+  "counts": {
+    "batches": 2,
+    "candidates": 3,
+    "cast_ballots": 6,
+    "full_demo_repetitions": 3,
+    "machines": 2,
+    "parallel_public_verifier_workers": 3,
+    "public_verifier_repetitions": 3,
+    "repetitions_per_pure_metric": 3,
+    "spoiled_ballots": 1
+  },
+  "gas_receipts": [
+    {
+      "block_number": 2,
+      "gas_used": 1802170,
+      "kind": "batch",
+      "machine": 1,
+      "machine_address": "f46b160a54ac1d70a3e0d079bd2e2acf80b9f9df",
+      "payload_sha256": "02011b50a0adf4a3ff18630c69c39cad732543508e057fcc5296621935bb7ed3",
+      "transaction_hash": "66f7e2cbc9700ceca17a2312721acaf5bb0c8184d629c9ba37a2c172e1c36d08"
+    },
+    {
+      "block_number": 3,
+      "gas_used": 1314280,
+      "kind": "batch",
+      "machine": 2,
+      "machine_address": "42aca8a54effe14f503191fbfd19b21532205e9e",
+      "payload_sha256": "1b096f85753780966f8cdeac080b547a2ac86e8644398baf229e3871cd5ff9e0",
+      "transaction_hash": "86ddd7d2ddf0a7c7c80f658e676e2b72c66279b66c966f4e5f29db0f6da56b4c"
+    },
+    {
+      "block_number": 5,
+      "gas_used": 219600,
+      "kind": "partial",
+      "transaction_hash": "d6f06ee89f0c8cd4459f6ae79d18fc6436093e09cbd9132ee53b97f1f2f059da",
+      "trustee": 1
+    },
+    {
+      "block_number": 6,
+      "gas_used": 219600,
+      "kind": "partial",
+      "transaction_hash": "d1067ff19c89fc252a9e941cfce5137601ca2720a20b11d51148473eedd81c15",
+      "trustee": 2
+    },
+    {
+      "block_number": 7,
+      "gas_used": 219600,
+      "kind": "partial",
+      "transaction_hash": "1c69444cb02a9ec814e3e0764f26c7a08405ce353d9c39823801a1d567272b08",
+      "trustee": 3
+    }
+  ],
+  "payload_and_proof_bytes": {
+    "batch_payload_bytes": [
+      {
+        "machine_address": "f46b160a54ac1d70a3e0d079bd2e2acf80b9f9df",
+        "payload_bytes": 44416
+      },
+      {
+        "machine_address": "42aca8a54effe14f503191fbfd19b21532205e9e",
+        "payload_bytes": 32217
+      }
+    ],
+    "candidate_count": 3,
+    "proof_bytes_in_published_batches": 50974,
+    "total_batch_payload_bytes": 76633
+  },
+  "provenance": {
+    "evidence_sha256": "bb049c5ac642dbc68b3190fe6e15d281342df2acefe1aa94c33786132e462a64",
+    "manifest_sha256": "cf39d9d3dc22d97a29dc91e9799e1d5e4a26cdcd8bbfb014d4cb4d2498402adf",
+    "receipts_sha256": "ada570beaab3d4a90bf545b163c6c3af7e5d043b96c72a66bf8983ffa2c040b2",
+    "run_outputs": [
+      {
+        "manifest_record_sha256": "cbb767207cf6732b0af93534e4c355b5a9543f1c25d4112d9b513d8167ca46e9",
+        "run_id": "cd6d38a96c355fe9"
+      },
+      {
+        "manifest_record_sha256": "594f52698bce06a22e8a3a5c4415c5de7e46110a303e49864965497bbfa96b5d",
+        "run_id": "4f727b12575cbe44"
+      },
+      {
+        "manifest_record_sha256": "71c8a56acf5118a5106b9fdd38e3e7f8a2af13ade4fc7d06d9550494513cb45f",
+        "run_id": "e39c727ca320ef52"
+      }
+    ],
+    "transcript_sha256": "d5f1c6bf42c0174691fe3ee6adad0cad8ae4ff349c789858fd6fc99524b596c5"
+  },
+  "raw_samples": {
+    "full_demo": [
+      {
+        "cache_note": "first process/node is cold; subsequent fresh processes/nodes follow cache warming",
+        "classification": "cold",
+        "fresh_node": true,
+        "fresh_process": true,
+        "monotonic_ns": 56590681917,
+        "sample": 1
+      },
+      {
+        "cache_note": "first process/node is cold; subsequent fresh processes/nodes follow cache warming",
+        "classification": "warm",
+        "fresh_node": true,
+        "fresh_process": true,
+        "monotonic_ns": 56174527333,
+        "sample": 2
+      },
+      {
+        "cache_note": "first process/node is cold; subsequent fresh processes/nodes follow cache warming",
+        "classification": "warm",
+        "fresh_node": true,
+        "fresh_process": true,
+        "monotonic_ns": 56164920292,
+        "sample": 3
+      }
+    ],
+    "pure_operations": [
+      {
+        "metric": "encryption_full_candidate_vector",
+        "monotonic_ns": 151508750,
+        "sample": 1
+      },
+      {
+        "metric": "encryption_full_candidate_vector",
+        "monotonic_ns": 151100000,
+        "sample": 2
+      },
+      {
+        "metric": "encryption_full_candidate_vector",
+        "monotonic_ns": 151819458,
+        "sample": 3
+      },
+      {
+        "metric": "bit_proof_vector_generation_including_opening_checks",
+        "monotonic_ns": 1085648417,
+        "sample": 1
+      },
+      {
+        "metric": "bit_proof_vector_generation_including_opening_checks",
+        "monotonic_ns": 1088121958,
+        "sample": 2
+      },
+      {
+        "metric": "bit_proof_vector_generation_including_opening_checks",
+        "monotonic_ns": 1126727375,
+        "sample": 3
+      },
+      {
+        "metric": "full_ballot_generation_including_sum_proof",
+        "monotonic_ns": 1137149792,
+        "sample": 1
+      },
+      {
+        "metric": "full_ballot_generation_including_sum_proof",
+        "monotonic_ns": 1134560458,
+        "sample": 2
+      },
+      {
+        "metric": "full_ballot_generation_including_sum_proof",
+        "monotonic_ns": 1209562792,
+        "sample": 3
+      },
+      {
+        "metric": "public_ballot_verification",
+        "monotonic_ns": 827160750,
+        "sample": 1
+      },
+      {
+        "metric": "public_ballot_verification",
+        "monotonic_ns": 833353500,
+        "sample": 2
+      },
+      {
+        "metric": "public_ballot_verification",
+        "monotonic_ns": 823533667,
+        "sample": 3
+      }
+    ],
+    "separate_public_verifier_process": [
+      {
+        "fresh_process": true,
+        "monotonic_ns": 17819719167,
+        "sample": 1
+      },
+      {
+        "fresh_process": true,
+        "monotonic_ns": 17830205542,
+        "sample": 2
+      },
+      {
+        "fresh_process": true,
+        "monotonic_ns": 17814804209,
+        "sample": 3
+      }
+    ]
+  },
+  "run_id": "f7c955207d33d7d5",
+  "runtime": {
+    "anvil": "anvil Version: 1.8.5\nCommit SHA: 51a52c59cffd940f76eddd0b4bb1791aa4b5ac7f\nBuild Timestamp: 2026-10-05T17:07:33.315474000Z (1791220053)\nBuild Profile: dist",
+    "cpu": "arm",
+    "os": "Darwin 27.2.0",
+    "python": "3.12.11"
+  },
+  "timing_caveats": [
+    "Encryption times the complete candidate ciphertext vector.",
+    "Bit-proof vector generation includes ciphertext setup and opening consistency checks.",
+    "Full ballot generation includes bit proofs and the sum proof; no exclusive sum-proof time is inferred.",
+    "The first full demo is cold; later full demos are warm, each with a fresh process and node.",
+    "Public verifier samples run concurrently in three isolated fresh processes.",
+    "Cold means first recorded fresh process/node, not a flushed OS or CPU cache.",
+    "Tool installation and first Docker image downloads/builds are excluded.",
+    "No absolute runtime promise is made."
+  ],
+  "units": "monotonic nanoseconds"
+}

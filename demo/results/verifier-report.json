@@ -1,0 +1,36 @@
+{
+  "assumptions": [
+    "offline copied JSON does not prove consensus or finality",
+    "complete honest board export is assumed",
+    "CAST ballots are counted; SPOILED ballots are excluded"
+  ],
+  "lookup": {
+    "commitment": "01ac66eb54cb4b7ebc7fae42ddb6203b8ce78ac03aa60b6cfc8358825b017008",
+    "counted": true,
+    "locator_is_cryptographic_proof": false,
+    "message": "CAST ballot included in aggregate",
+    "status": "CAST"
+  },
+  "report": {
+    "aggregate_digest": "da6aca85f84e89a17f6ccb8b7e54fbdfe1b1552469f480e1ac68c9670182b038",
+    "cast_count": 6,
+    "election_id": "91e9ca6ae7350373c6744193bc5503989d6fc7848d507a8a4c4c7e86ae46bde5",
+    "manifest_hash": "71c8a56acf5118a5106b9fdd38e3e7f8a2af13ade4fc7d06d9550494513cb45f",
+    "receipt_results": {
+      "01ac66eb54cb4b7ebc7fae42ddb6203b8ce78ac03aa60b6cfc8358825b017008": "CAST",
+      "07ccda3c88bf07e2eb282c5616d55acf34df4ad85789ef327222dbf879a2f758": "CAST",
+      "6335ca677b506d30daf37709b746e2bd367210ffb4055777f4959eb69bc9ab11": "CAST",
+      "686bb4ed790860b1883890eee9f7bc761cd4d4e3ef684e950c4e613c1bbc7e0d": "SPOILED",
+      "7b6319dce96d78492584a6e9d296410f07bac49b75130028453abcb0b8cfd1d7": "CAST",
+      "84be236f8ec7ee93d4d15e421dca0fdef93c7fb14c4f5b51f5249112020142e5": "CAST",
+      "89fd579745bbaeba20c41ca69aeae931b8e57b69c0b8645deeb1ede70a04e5a4": "CAST"
+    },
+    "snapshot_hash": "04368edab346b5e07b1b73929875bde403f775b494886e050a4d5d9b7b197917",
+    "spoiled_count": 1,
+    "totals": [
+      2,
+      2,
+      2
+    ]
+  }
+}

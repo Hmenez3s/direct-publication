@@ -1,0 +1,84 @@
+{
+  "run": {
+    "batches": 2,
+    "candidate_count": 3,
+    "candidates": [
+      "Ada Lovelace",
+      "Grace Hopper",
+      "Katherine Johnson"
+    ],
+    "cast_ballots": 6,
+    "chain_id": 1245028022,
+    "gas_receipts": [
+      {
+        "block_number": 2,
+        "gas_used": 1802170,
+        "kind": "batch",
+        "machine": 1,
+        "machine_address": "f46b160a54ac1d70a3e0d079bd2e2acf80b9f9df",
+        "payload_sha256": "02011b50a0adf4a3ff18630c69c39cad732543508e057fcc5296621935bb7ed3",
+        "transaction_hash": "66f7e2cbc9700ceca17a2312721acaf5bb0c8184d629c9ba37a2c172e1c36d08"
+      },
+      {
+        "block_number": 3,
+        "gas_used": 1314280,
+        "kind": "batch",
+        "machine": 2,
+        "machine_address": "42aca8a54effe14f503191fbfd19b21532205e9e",
+        "payload_sha256": "1b096f85753780966f8cdeac080b547a2ac86e8644398baf229e3871cd5ff9e0",
+        "transaction_hash": "86ddd7d2ddf0a7c7c80f658e676e2b72c66279b66c966f4e5f29db0f6da56b4c"
+      },
+      {
+        "block_number": 5,
+        "gas_used": 219600,
+        "kind": "partial",
+        "transaction_hash": "d6f06ee89f0c8cd4459f6ae79d18fc6436093e09cbd9132ee53b97f1f2f059da",
+        "trustee": 1
+      },
+      {
+        "block_number": 6,
+        "gas_used": 219600,
+        "kind": "partial",
+        "transaction_hash": "d1067ff19c89fc252a9e941cfce5137601ca2720a20b11d51148473eedd81c15",
+        "trustee": 2
+      },
+      {
+        "block_number": 7,
+        "gas_used": 219600,
+        "kind": "partial",
+        "transaction_hash": "1c69444cb02a9ec814e3e0764f26c7a08405ce353d9c39823801a1d567272b08",
+        "trustee": 3
+      }
+    ],
+    "host_metadata_excluded": true,
+    "lookup": {
+      "commitment": "01ac66eb54cb4b7ebc7fae42ddb6203b8ce78ac03aa60b6cfc8358825b017008",
+      "counted": true,
+      "locator_is_cryptographic_proof": false,
+      "message": "CAST ballot included in aggregate",
+      "status": "CAST"
+    },
+    "machines": 2,
+    "provenance": {
+      "evidence_sha256": "52308deef8b73af12f5eeaad184488b23aace8d37d83cbdb7dd91f0ab46aab6e",
+      "manifest_sha256": "71c8a56acf5118a5106b9fdd38e3e7f8a2af13ade4fc7d06d9550494513cb45f",
+      "receipts_sha256": "9fc4d0179e633e068259fe49d37b10f153927afe39d192eca49a1e31ccfbc30a"
+    },
+    "public_verifier_seconds": 17.427273791,
+    "run_id": "e39c727ca320ef52",
+    "scratch_reinstall": {
+      "boundary": "not a device wipe, secure boot, or OS/dependency/runtime attestation",
+      "bytes": 791472,
+      "previous_owned_image_removed": true,
+      "release_sha256": "491dd93dc465d9d1e029283e51e0253de2ec3a25c05ff1de96b6317969f19dd3",
+      "reread_sha256": "491dd93dc465d9d1e029283e51e0253de2ec3a25c05ff1de96b6317969f19dd3",
+      "simulation": "ScratchReinstall synthetic scratch image",
+      "trust": "approved release pin; no operating-system authenticity guarantee"
+    },
+    "spoiled_ballots": 1,
+    "trustee_partials": 3
+  },
+  "run_id": "e39c727ca320ef52",
+  "stderr": "",
+  "stdout": "PREPARED RECEIPT {\"board_address\":\"3855c29686bc229d6ecd3e2480adbf53e806b10f\",\"chain_id\":1245028022,\"commitment\":\"686bb4ed790860b1883890eee9f7bc761cd4d4e3ef684e950c4e613c1bbc7e0d\",\"election_id\":\"91e9ca6ae7350373c6744193bc5503989d6fc7848d507a8a4c4c7e86ae46bde5\",\"lookup_code\":\"686bb4ed790860b18838\",\"machine_address\":\"f46b160a54ac1d70a3e0d079bd2e2acf80b9f9df\",\"schema_version\":1,\"signature\":\"bbbba1a6e8b2da02bee2e2daa99bd0e2532b00dab7d52deb308c4b80c863dba2727b3d27560f53db8b5832d9db32d98df8f62072c516657065145b6ad85ee3a61c\"}\nDECISION TEST: receipt retained; ballot SPOILED and excluded from tally\nPUBLIC TEST OPENING: {\"choice_index\": 1, \"randomness\": [\"05d923bc5de497decf5631c0d464ae0c71aba451aafe962338a3835c4ec3e4900ac3f2bc8561ae8212dfa8ff9fd3a7c3ebb6062c1272bcfb21a73715ac771648cc3fa119fc943859563077a89d5fc03f9f63050835679325da50af0d88542c1b229bdfbad8de60898683ab2bdb0efb5bf084fab71b8c786570375f95cae67803ad3d8a8043dac939daad5c083b5de5c999f5afeb455bc5962c5e2c58acd4cbe4d78eb03be2e2f59059088928fd1abd7f012d8077510e9211c2ca318dca52d7880d1dd20dee99b19f7010a1fadae2be967993b121eaf95bb66ffea7a8ff1ce6266ad2d9af540e5fb8dfd8148b465430f496114e2090f83827060647225feabad0\", \"38c59810b1f2d2b89e1ae696074c58a2e1864de1f7e0b26e23887dc8ef24da266f5804cfd4d9688d5b77ac73b98d6bc57fa999461deb78c040005695e64fac20401b9214ee9ccb64b115b3d774a061d7f628d3a5077096a20be1cee5a7f38652060c4b7ccf0e0de605855bce7399948af4ea9114e90ab7892a28bc1f8a7dab3f53dc7cd2dfd97b064ac5e9916dd89ceacc67d4c66687073fbca8bdb240ef377ff5ed456ab052f596654dcc831d97a0b93460d3e10cb6c02699d9fb7e31caf17aef523da134df6d33be460b106ca81e2de2769670efa933a5abf35083ba6f88de363b5728508a1123c997bc25e8db2fb8201e169e0e757c70e172a4ed38f94328\", \"263621a46211eaf1e8fd2c97d39a50cf2b79ae2dd06a861613d269cc46f85b68386f89af25cd4e1e1aea7586d861fe002e945e2a42fce570887ce9cc02301610d6e3626ed857755dd5e287df3ec3101e8580214ef735bd645bb5378f2624901c6ae45074a7fd064d8c67636b37140b95ab0273d7a4425ff7f84a865ef92dcbeb9d141462d2af95ab7915a4ff77d40c73beb8bf79e2a24bbc4f51b5710034c56670241ed3cb5246c193aff9d6c1fce7e753b24bdede8ec260694539cf73e5a708ab60cab28cc6dfcc86ab70e5117b40e2b198a9f0bcd47e16366f84cc2e2b3acadafc93a36c6c8430c9e213a4c428c427fa0d4f5b3533c5a84dfdb57586570c00\"]}\nPREPARED RECEIPT {\"board_address\":\"3855c29686bc229d6ecd3e2480adbf53e806b10f\",\"chain_id\":1245028022,\"commitment\":\"01ac66eb54cb4b7ebc7fae42ddb6203b8ce78ac03aa60b6cfc8358825b017008\",\"election_id\":\"91e9ca6ae7350373c6744193bc5503989d6fc7848d507a8a4c4c7e86ae46bde5\",\"lookup_code\":\"01ac66eb54cb4b7ebc7f\",\"machine_address\":\"f46b160a54ac1d70a3e0d079bd2e2acf80b9f9df\",\"schema_version\":1,\"signature\":\"bfe458c8fa7b9251181ba24fffd7c1347341546ce757f38bc472d991889931710ab773a5b406f27ea4f97aeffc5a54434998363daf91f9cca7296b1fab4e658b1b\"}\nDECISION CONFIRM: retry CAST\nPREPARED RECEIPT {\"board_address\":\"3855c29686bc229d6ecd3e2480adbf53e806b10f\",\"chain_id\":1245028022,\"commitment\":\"6335ca677b506d30daf37709b746e2bd367210ffb4055777f4959eb69bc9ab11\",\"election_id\":\"91e9ca6ae7350373c6744193bc5503989d6fc7848d507a8a4c4c7e86ae46bde5\",\"lookup_code\":\"6335ca677b506d30daf3\",\"machine_address\":\"f46b160a54ac1d70a3e0d079bd2e2acf80b9f9df\",\"schema_version\":1,\"signature\":\"79cdf3bc4e46a76b8e5fbf36bb5872e0b5eac633c6c3a0f043e0d73c7c502c0249fc7ef52c4a523f538cd8de63d60aafb18adfd4845aaa22a7e82984473401571c\"}\nDECISION CONFIRM: CAST\nPREPARED RECEIPT {\"board_address\":\"3855c29686bc229d6ecd3e2480adbf53e806b10f\",\"chain_id\":1245028022,\"commitment\":\"07ccda3c88bf07e2eb282c5616d55acf34df4ad85789ef327222dbf879a2f758\",\"election_id\":\"91e9ca6ae7350373c6744193bc5503989d6fc7848d507a8a4c4c7e86ae46bde5\",\"lookup_code\":\"07ccda3c88bf07e2eb28\",\"machine_address\":\"f46b160a54ac1d70a3e0d079bd2e2acf80b9f9df\",\"schema_version\":1,\"signature\":\"f4d792e9a5a2e262c02659a1343a1c08ca76f1d7141fe3005c1efa29290de67a0353393c6d2068e03158d524570391f463aa1ae535e83abd43a1033e5f7e25761b\"}\nDECISION CONFIRM: CAST\nPREPARED RECEIPT {\"board_address\":\"3855c29686bc229d6ecd3e2480adbf53e806b10f\",\"chain_id\":1245028022,\"commitment\":\"89fd579745bbaeba20c41ca69aeae931b8e57b69c0b8645deeb1ede70a04e5a4\",\"election_id\":\"91e9ca6ae7350373c6744193bc5503989d6fc7848d507a8a4c4c7e86ae46bde5\",\"lookup_code\":\"89fd579745bbaeba20c4\",\"machine_address\":\"42aca8a54effe14f503191fbfd19b21532205e9e\",\"schema_version\":1,\"signature\":\"463b2f6838638d0e3ac5c6d6f9b15b85c7d28a496a8e00f2051aa2b1e57e2de4368b57392ae5b7742ae873f0efeec1514b03a794d7286931f8e76e814f977cc91b\"}\nDECISION CONFIRM: CAST\nPREPARED RECEIPT {\"board_address\":\"3855c29686bc229d6ecd3e2480adbf53e806b10f\",\"chain_id\":1245028022,\"commitment\":\"84be236f8ec7ee93d4d15e421dca0fdef93c7fb14c4f5b51f5249112020142e5\",\"election_id\":\"91e9ca6ae7350373c6744193bc5503989d6fc7848d507a8a4c4c7e86ae46bde5\",\"lookup_code\":\"84be236f8ec7ee93d4d1\",\"machine_address\":\"42aca8a54effe14f503191fbfd19b21532205e9e\",\"schema_version\":1,\"signature\":\"1dd081c58b50f9f4fc7d2ef33baec1109e527e3ab0f1e1074d57318f0eaf438f0104d07936071a3c962fbcbf1543eecfec421a261e657eb0e53bd2954300de981b\"}\nDECISION CONFIRM: CAST\nPREPARED RECEIPT {\"board_address\":\"3855c29686bc229d6ecd3e2480adbf53e806b10f\",\"chain_id\":1245028022,\"commitment\":\"7b6319dce96d78492584a6e9d296410f07bac49b75130028453abcb0b8cfd1d7\",\"election_id\":\"91e9ca6ae7350373c6744193bc5503989d6fc7848d507a8a4c4c7e86ae46bde5\",\"lookup_code\":\"7b6319dce96d78492584\",\"machine_address\":\"42aca8a54effe14f503191fbfd19b21532205e9e\",\"schema_version\":1,\"signature\":\"11905a3aa25b5b4eafd2586199fb4e2849de874916eecec5d72edc8256d23da15343f9edd890e2ba9f7896d5cc81e77b74e229475621194c11478094a5d850ff1b\"}\nDECISION CONFIRM: CAST\nPOLLS CLOSED locally; publication window remains open; voting switches were off.\nPOLL-WORKER SEAL simulation bound to machine 1; exact carrier published\nPOLL-WORKER SEAL simulation bound to machine 2; exact carrier published\nPUBLIC VERIFIER CAST receipt lookup: {'commitment': '01ac66eb54cb4b7ebc7fae42ddb6203b8ce78ac03aa60b6cfc8358825b017008', 'counted': True, 'locator_is_cryptographic_proof': False, 'message': 'CAST ballot included in aggregate', 'status': 'CAST'}\nPUBLIC VERIFIER tally: [2, 2, 2]\nPUBLIC VERIFIER TEST receipt status: SPOILED ; SPOILED opening is public and excluded from the tally.\n"
+}

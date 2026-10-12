@@ -53,3 +53,23 @@ attacks: attack-machine attack-transport attack-drop-vote attack-tally attack-du
 
 check: lint format-check test test-contract attacks
 # END attacks
+
+# BEGIN demo
+.PHONY: demo measure
+
+OUTPUT_ROOT ?=
+
+demo: build-contract
+	@if [ -n "$(OUTPUT_ROOT)" ]; then \
+		uv run python -m demo.e2e --output-root "$(OUTPUT_ROOT)"; \
+	else \
+		scratch=$$(mktemp -d -t urna-demo-XXXXXX) && uv run python -m demo.e2e --output-root "$$scratch/output"; \
+	fi
+
+measure: build-contract
+	@if [ -n "$(OUTPUT_ROOT)" ]; then \
+		uv run python -m demo.measure --output-root "$(OUTPUT_ROOT)"; \
+	else \
+		scratch=$$(mktemp -d -t urna-measure-XXXXXX) && uv run python -m demo.measure --output-root "$$scratch/output"; \
+	fi
+# END demo
