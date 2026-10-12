@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: >-
+  If you use this educational research prototype, please cite it as software
+  and consult the repository for paper availability.
+title: Urna Aberta
+version: 0.1.0
+authors:
+  - name: Urna Aberta contributors
+license: Apache-2.0
+type: software
+abstract: >-
+  Educational research prototype exploring offline ballot generation,
+  signed public bulletin-board publication, and independent verification.
