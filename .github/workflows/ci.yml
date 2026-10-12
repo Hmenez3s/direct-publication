@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.7"
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: "v1.8.5"
+      - name: Install locked Python dependencies
+        run: uv sync --locked --all-groups
+      - name: Lint
+        run: make lint
+      - name: Check formatting
+        run: make format-check
+      - name: Solidity tests
+        run: make test-contract
+      - name: Python tests
+        run: make test
+      - name: Machine attack detector
+        run: make attack-machine
+      - name: Transport attack detector
+        run: make attack-transport
+      - name: Drop-vote attack detector
+        run: make attack-drop-vote
+      - name: Tally attack detector
+        run: make attack-tally
+      - name: Duplicate attack detector
+        run: make attack-duplicate
+      - name: Rogue-machine attack detector
+        run: make attack-rogue-machine
+      - name: Double-vote attack detector
+        run: make attack-double-vote
+      - name: Early-network attack detector
+        run: make attack-early-network

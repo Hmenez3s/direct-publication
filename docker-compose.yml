@@ -1,0 +1,64 @@
+services:
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:v1.8.5
+    entrypoint: ["anvil"]
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8545"
+      - --chain-id
+      - "31337"
+      - --mnemonic
+      - test test test test test test test test test test test junk
+      - --accounts
+      - "10"
+      - --silent
+    networks:
+      - private
+    healthcheck:
+      test: ["CMD", "cast", "rpc", "eth_chainId", "--rpc-url", "http://127.0.0.1:8545"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+
+  demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      anvil:
+        condition: service_healthy
+    environment:
+      URNA_COMPOSE_RUN_ID: ${URNA_COMPOSE_RUN_ID:?set a unique run ID for this isolated Compose invocation}
+      URNA_COMPOSE_ISOLATED_PRIVATE_VM: ${URNA_COMPOSE_ISOLATED_PRIVATE_VM:?explicit isolated-VM operator acknowledgement required}
+      URNA_COMPOSE_NO_HOST_MOUNTS: ${URNA_COMPOSE_NO_HOST_MOUNTS:?explicit no-host-mounts operator acknowledgement required}
+    command:
+      - python
+      - -c
+      - |
+        import os
+        from eth_account import Account
+        from attacks.common import honest_scenario
+        from demo.chain import ComposeOwnershipAttestation
+
+        # These acknowledgements assert external orchestration evidence; they do not enforce VM isolation.
+        Account.enable_unaudited_hdwallet_features()
+        mnemonic = "test test test test test test test test test test test junk"
+        keys = tuple(Account.from_mnemonic(mnemonic, account_path=f"m/44'/60'/0'/0/{i}").key.hex() for i in range(10))
+        ownership = ComposeOwnershipAttestation(
+            os.environ["URNA_COMPOSE_RUN_ID"],
+            os.environ["URNA_COMPOSE_ISOLATED_PRIVATE_VM"] == "true",
+            os.environ["URNA_COMPOSE_NO_HOST_MOUNTS"] == "true",
+            keys,
+        )
+        with honest_scenario(mode="compose", ownership=ownership) as scenario:
+            report = scenario.report
+            print(f"VERIFIED election_id={report.election_id} cast_count={report.cast_count} totals={report.totals}")
+    networks:
+      - private
+    restart: "no"
+
+networks:
+  private:
+    internal: true
