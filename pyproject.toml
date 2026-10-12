@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "urna-aberta"
+version = "0.1.0"
+description = "Offline verifiable election research prototype"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "eth-account",
+  "eth-abi",
+  "web3",
+  "rlp",
+  "rich",
+  "matplotlib",
+  "Pillow",
+  "nbformat",
+  "nbclient",
+  "ipykernel",
+]
+
+[dependency-groups]
+dev = ["pytest", "pytest-xdist", "ruff"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["urna*", "trustees*", "verifier*", "attacks*", "demo*"]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
