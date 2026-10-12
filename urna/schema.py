@@ -542,10 +542,12 @@ def _version(value: Any) -> None:
 
 
 def ballot_commitment(ballot: Ballot) -> str:
-    """Hash the canonical serialized ballot with SHA-256."""
+    """Commit to the ordered ciphertext vector, independent of randomized proofs."""
     if not isinstance(ballot, Ballot):
         raise TypeError("ballot must be a Ballot")
-    return sha256_hex(ballot.to_bytes())
+    return sha256_hex(
+        canonical_json_bytes([ciphertext.to_dict() for ciphertext in ballot.ciphertexts])
+    )
 
 
 def manifest_digest(manifest: ElectionManifest) -> str:

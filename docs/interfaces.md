@@ -21,26 +21,26 @@ Wire key names match dataclass field names exactly. Collection fields are tuples
 
 Version is exactly 1. Chain IDs and deadlines are positive and all protocol counts are bounded by 2^53-1. There are 2..32 unique candidates; 1..16 sorted unique machine addresses; five uniquely addressed trustees with indices 1..5 (evidence addresses preserve index order, not address sorting); three coefficient commitments with the first equal to `public_key`; `group_id` is `rfc3526-group14`; and `max_tally` is in 1..16000. Ballots have matching vectors of 2..32 ciphertexts/proofs. Batches contain at most 1000 ballots total and unique commitments. Trustee indices are 1..5. Payloads are bounded before record conversion. Membership in cryptographic subgroups is a cryptographic validation responsibility, not a wire-schema check. The predicted board address is part of the manifest and its consistency is checked by deployment/verifier code.
 
-`sha256_hex(bytes)` returns lowercase SHA-256 hex. `ballot_commitment(ballot)` and `manifest_digest(manifest)` hash the canonical record bytes. `aggregate_digest(aggregate)` hashes canonical JSON for `{'domain':'urna-aberta/aggregate/v1', **aggregate.to_dict()}`.
+`sha256_hex(bytes)` returns lowercase SHA-256 hex. `ballot_commitment(ballot)` hashes the canonical ordered list of ciphertext dictionaries only, excluding randomized proofs. `manifest_digest(manifest)` hashes the canonical manifest record bytes. `aggregate_digest(aggregate)` hashes canonical JSON for `{'domain':'urna-aberta/aggregate/v1', **aggregate.to_dict()}`.
 
-## Future module contracts (not implemented here)
+## Module contracts
 
-These signatures and transcript contracts are frozen for later milestones; this package does not implement the future modules.
+These signatures and transcript definitions are the canonical module boundaries.
 
 ### `urna.crypto`
 
 - Constants `P`, `Q`, `G`; RFC3526 section 3 group 14 with `G=2`, `Q=(P-1)//2`.
 - `encrypt(public_key, m, r=None)`, `multiply(ciphertexts)`, `make_ballot(manifest, choice_index) -> (Ballot, randomness)`, `verify_ballot(...) -> None`, and `verify_opening(...) -> None`.
 - Educational fixture helper `prove_bit(election_id, public_key, ciphertexts, candidate_index, m, r) -> BitProof`.
-- Bit and sum Fiat-Shamir transcript keys: `domain,election_id,public_key,ciphertexts,candidate_index`; domains `urna-aberta/bit/v1` and `urna-aberta/sum/v1`; commitments are `[[Tg0,Ty0],[Tg1,Ty1]]` and `[[Tg,Ty]]` respectively. Sum candidate index is -1. Reconstruct OR branches with `g^z/a^c` and `y^z/(b/g^k)^c`; for sum use `A=product(a)`, `B=product(b/g)` and SHA-256 of canonical transcript modulo Q.
+- Bit and sum Fiat-Shamir transcript keys: `domain,election_id,public_key,ciphertexts,candidate_index,commitments`; domains `urna-aberta/bit/v1` and `urna-aberta/sum/v1`; commitments are `[[Tg0,Ty0],[Tg1,Ty1]]` and `[[Tg,Ty]]` respectively. Sum candidate index is -1. Reconstruct OR branches with `g^z/a^c` and `y^z/(b/g^k)^c`; for sum use `A=product(a)`, `B=product(b)/g` and SHA-256 of canonical transcript modulo Q.
 
 ### `trustees`
 
-`create_dealer(election_id) -> DealerSetup(election_id,public_key,coefficient_commitments,verification_keys,shares)`; `Share(index,value)`; and `verify_share`. Three-of-five trusted dealer setup is a prototype, not DKG. `make_partial(manifest,aggregate,share)`, `verify_partial`, and `decrypt_tally` verify each partial before interpolation and disclose only the aggregate result through this API. Partial transcript keys are `domain,election_id,public_key,aggregate_digest,trustee_index,candidate_index,verification_key,ciphertext,value,commitments`; domain `urna-aberta/partial/v1`; commitments `[Tg,Ta]`. Three colluding trustees can decrypt arbitrary ciphertexts. Aggregate-only handling is an API policy, not cryptographic prevention of collusion.
+`create_dealer(election_id) -> DealerSetup(election_id,public_key,coefficient_commitments,verification_keys,shares)`; `Share(index,value)`; and `verify_share`. Three-of-five trusted dealer setup is a prototype, not DKG. `make_partial(manifest,aggregate,share)`, `verify_partial`, and `decrypt_tally` perform low-level math over a caller-supplied aggregate and verify every supplied partial before interpolation. The public `trustees.api` wrapper audits the complete board before constructing that aggregate. Partial transcript keys are `domain,election_id,public_key,aggregate_digest,trustee_index,candidate_index,verification_key,ciphertext,value,commitments`; domain `urna-aberta/partial/v1`; commitments `[Tg,Ta]`. Three colluding trustees can decrypt arbitrary ciphertexts. Aggregate-only handling is an API policy, not cryptographic prevention of collusion.
 
 ### `urna.signing`
 
-`batch_digest(chain_id,board_address,election_id,payload)` is Keccak of ABI `(uint256,address,bytes32,bytes32)` containing chain, board, election, and Keccak(payload). `receipt_digest(manifest,machine_address,commitment)` is Keccak of ABI `(bytes32,uint256,address,bytes32,address,bytes32)` containing Keccak(`urna-aberta/receipt/v1`), chain, board, election, machine, and commitment. `sign_batch`/`verify_batch_signature` and `sign_receipt`/`verify_receipt` use EIP-191 and accept only 65-byte low-s signatures with v=27/28.
+`batch_digest(chain_id,board_address,election_id,payload)` is Keccak of ABI `(uint256,address,bytes32,bytes32)` containing chain, board, election, and Keccak(payload). `receipt_digest(manifest,machine_address,commitment)` is Keccak of ABI `(bytes32,uint256,address,bytes32,address,bytes32)` containing Keccak(`urna-aberta/receipt/v1`), chain, board, election, machine, and commitment. `sign_batch`/`verify_batch_signature` and `sign_receipt`/`verify_receipt_signature` use EIP-191 and accept only 65-byte low-s signatures with v=27/28.
 
 ### Bulletin board and chain adapter
 

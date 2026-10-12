@@ -71,7 +71,18 @@ def test_ballot_and_manifest_canonical_bytes_round_trip(tmp_path) -> None:
     ballot_bytes = ballot.to_bytes()
     assert Ballot.from_bytes(ballot_bytes) == ballot
     assert ballot_bytes == canonical_json_bytes(ballot.to_dict())
-    assert ballot_commitment(ballot) == sha256_hex(ballot_bytes)
+    ciphertext_bytes = canonical_json_bytes(
+        [ciphertext.to_dict() for ciphertext in ballot.ciphertexts]
+    )
+    assert ballot_commitment(ballot) == sha256_hex(ciphertext_bytes)
+    from dataclasses import replace
+
+    different_proof = replace(ballot, sum_proof=EqualityProof("1".zfill(512), ZERO_GROUP))
+    assert ballot_commitment(different_proof) == ballot_commitment(ballot)
+    different_ciphertext = replace(
+        ballot, ciphertexts=(Ciphertext("1".zfill(512), ZERO_GROUP), ballot.ciphertexts[1])
+    )
+    assert ballot_commitment(different_ciphertext) != ballot_commitment(ballot)
 
     manifest = valid_manifest()
     manifest_file = tmp_path / "manifest.json"
