@@ -1,14 +1,14 @@
 # Urna Aberta
 
-**Máquinas de votação que provam seu próprio resultado, sem confiar em ninguém.**
+**Voto secreto. Recibo verificável. Resultado que você confere.**
 
-Protótipo educacional de uma eleição que dá para conferir. Você escolhe um candidato. A urna, offline, imprime um recibo assinado antes de você confirmar ou testar a cédula. O que foi confirmado sai cifrado, embaralhado e sem horário. Um programa separado lê o mural público e recalcula a apuração.
+Um novo sistema de votação, em forma de protótipo educacional. A urna entrega um recibo sem revelar o candidato. Você confere se sua cédula entrou na apuração. Qualquer pessoa pode verificar as provas públicas e recalcular o resultado, sem usar o programa da urna.
 
-[![CI configurada](https://img.shields.io/badge/CI-configurada-lightgrey)](.github/workflows/ci.yml) [![Apache 2.0](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-blue)](LICENSE) [![PDF do artigo](https://img.shields.io/badge/artigo-PDF-2F6B5F)](paper/main.pdf)
+[English](README.md) · [Rodar a demo](#rodar) · [Artigo](paper/main.pdf)
 
-![Demonstração: uma eleição local verificável](docs/demo.gif)
+![Do boletim com totais ao recibo individual: conheça a proposta Urna Aberta](docs/intro.pt-BR.svg)
 
-A animação é uma captura real dessa demo, gravada com VHS. A receita está em [`docs/demo.tape`](docs/demo.tape).
+**O que muda?** No Brasil, o Boletim de Urna permite comparar os totais da seção com os publicados pelo TSE. Ele não é um recibo individual da cédula. A Urna Aberta explora essa conferência por recibo, além dos testes de abertura e da verificação da apuração. [Contexto e fontes oficiais](docs/media.md#brazilian-system-context).
 
 ## Três passos
 
@@ -16,16 +16,11 @@ A animação é uma captura real dessa demo, gravada com VHS. A receita está em
 2. **Publicar.** Encerrada a votação, cada urna registrada assina um único lote completo e envia ao mural em Solidity. Na demo, o mural roda num nó Anvil local.
 3. **Conferir.** Três de cinco trustees publicam as partes da descriptografia do total auditado. O verificador em Python confere manifesto, assinaturas, provas das cédulas, recibos, provas dos trustees e a apuração. Cédula anulada fica de fora.
 
-```mermaid
-flowchart LR
-  V[Eleitor] -->|escolhe, depois CONFIRM ou TEST| U[Urna offline]
-  U -->|lote assinado, depois do encerramento| B[Mural Solidity]
-  B -->|evidência pública| X[Verificador Python]
-  T[3 de 5 trustees] -->|partes da descriptografia| B
-  X --> R[Apuração]
-```
+## Veja funcionando
 
-Na demo medida, duas urnas registram seis votos e anulam um teste, com três candidatos. O verificador público acha o recibo e apura `(2, 2, 2)`.
+![Eleição real da demo: votar, testar, publicar e conferir](docs/demo.pt-BR.gif)
+
+Duas urnas, seis votos confirmados, um teste anulado e apuração `(2, 2, 2)`. Captura real de uma execução local, reproduzida a **3×**. Recibos e resultados vêm dessa execução, não de texto encenado. [Roteiro VHS](docs/demo.pt-BR.tape) · [Como reproduzir a gravação](docs/media.md).
 
 ## Rodar
 
@@ -33,10 +28,10 @@ Instale Python 3.12, uv 0.11.7, Foundry 1.8.5 (`forge` e `anvil`) e solc 0.8.28.
 
 ```sh
 uv sync --locked
-make demo
+make demo DEMO_LANG=pt-BR
 ```
 
-`make demo` compila o contrato, sobe um Anvil só dessa execução e imprime a apuração do verificador. Nas três execuções medidas, do zero, os tempos foram 56.5907 s, 56.1745 s e 56.1649 s, sem contar a instalação das ferramentas. As amostras estão em [`demo/results/measurements.json`](demo/results/measurements.json).
+`make demo` compila o contrato, sobe um Anvil só dessa execução e imprime a apuração do verificador. Nas três execuções do checkpoint medido, do zero, os tempos foram 56.5907 s, 56.1745 s e 56.1649 s, sem contar a instalação das ferramentas. As amostras estão em [`demo/results/measurements.json`](demo/results/measurements.json).
 
 A mesma evidência, já executada, está em [`demo/notebook.ipynb`](demo/notebook.ipynb).
 

@@ -1,14 +1,14 @@
 # Urna Aberta
 
-**Voting machines that prove their own result, without trusting anyone.**
+**Secret vote. Verifiable receipt. A result you can check.**
 
-Educational prototype of an election you can check. You choose a candidate. The offline machine prints a signed receipt before you confirm or test the ballot. Confirmed ballots leave encrypted, shuffled, and without a timestamp. A separate program reads the public board and recomputes the tally.
+A new voting system, built as an educational prototype. The machine gives you a receipt that does not reveal your candidate. You check whether your ballot made it into the tally. Anyone can check the public proofs and recompute the result without using the voting machine's software.
 
-[![CI configured](https://img.shields.io/badge/CI-configured-lightgrey)](.github/workflows/ci.yml) [![Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE) [![Paper PDF](https://img.shields.io/badge/paper-PDF-2F6B5F)](paper/main.pdf)
+[Português brasileiro](README.pt-BR.md) · [Run the demo](#run-it) · [Paper](paper/main.pdf)
 
-![Demo: a local verifiable election](docs/demo.gif)
+![From polling-station totals to an individual receipt: the Urna Aberta proposal](docs/intro.svg)
 
-The animation is a real VHS capture of that demo. The recipe is [`docs/demo.tape`](docs/demo.tape).
+**What changes?** Brazil's polling-station bulletin lets anyone compare station totals with those published by the TSE. It is not an individual ballot receipt. Urna Aberta explores that receipt-based check, alongside ballot-opening challenges and tally verification. [Context and official sources](docs/media.md#brazilian-system-context).
 
 ## Three steps
 
@@ -16,16 +16,11 @@ The animation is a real VHS capture of that demo. The recipe is [`docs/demo.tape
 2. **Publish.** After the poll closes, each registered machine signs one complete batch and posts it to the Solidity board. The demo runs the board on a local Anvil node.
 3. **Check.** Three of five trustees publish decryption shares for the audited total. The Python verifier checks the manifest, signatures, ballot proofs, receipts, trustee proofs, and the tally. Spoiled ballots stay out.
 
-```mermaid
-flowchart LR
-  V[Voter] -->|choose, then CONFIRM or TEST| U[Offline machine]
-  U -->|signed batch after close| B[Solidity board]
-  B -->|public evidence| X[Python verifier]
-  T[3 of 5 trustees] -->|decryption shares| B
-  X --> R[Tally]
-```
+## See it work
 
-In the measured demo, two machines cast six ballots and spoil one test across three candidates. The public verifier finds the receipt and reports `(2, 2, 2)`.
+![Real demo election: vote, challenge, publish, and verify](docs/demo.gif)
+
+Two machines, six confirmed ballots, one spoiled test, and tally `(2, 2, 2)`. A genuine local execution, played at **3×** speed. Receipts and results come from that run, not scripted output. [VHS tape](docs/demo.tape) · [Reproduce the recording](docs/media.md).
 
 ## Run it
 
@@ -36,7 +31,7 @@ uv sync --locked
 make demo
 ```
 
-`make demo` compiles the contract, starts an Anvil node for that run, and prints the verifier's tally. Three fresh runs on the measured machine took 56.5907 s, 56.1745 s, and 56.1649 s, not counting tool installation. The samples are in [`demo/results/measurements.json`](demo/results/measurements.json).
+`make demo` compiles the contract, starts an Anvil node for that run, and prints the verifier's tally. Three fresh runs at the measured checkpoint took 56.5907 s, 56.1745 s, and 56.1649 s, not counting tool installation. The samples are in [`demo/results/measurements.json`](demo/results/measurements.json).
 
 The same evidence, already executed, is in [`demo/notebook.ipynb`](demo/notebook.ipynb).
 
