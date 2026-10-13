@@ -1,11 +1,24 @@
 from __future__ import annotations
 
+import base64
 import json
+from contextlib import nullcontext
+from io import BytesIO
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from PIL import Image
 
-from demo.render_intro import frame_schedule, inspect_source, main, render, validate_limits
+from demo.render_intro import (
+    RenderError,
+    frame_schedule,
+    inspect_source,
+    main,
+    normalize_screenshot,
+    render,
+    validate_limits,
+)
 
 
 def valid_svg() -> str:
@@ -140,3 +153,74 @@ def test_render_pins_screen_animation_encoding_quality(tmp_path, monkeypatch) ->
         assert command[command.index(flag) + 1] == value
     assert command[command.index("-pix_fmt") + 1] == "yuv420p"
     assert json.loads((output / "render.json").read_text())["command"] == command
+
+
+@pytest.mark.parametrize("size", [(1000, 600), (2000, 1200)])
+def test_normalize_screenshot_preserves_canvas_and_color(size) -> None:
+    buffer = BytesIO()
+    Image.new("RGB", size, (24, 24, 24)).save(buffer, format="PNG")
+    png = buffer.getvalue()
+    normalized = normalize_screenshot(png)
+    with Image.open(BytesIO(normalized)) as image:
+        assert image.size == (1000, 600)
+        assert image.getextrema() == ((24, 24), (24, 24), (24, 24))
+    if size == (1000, 600):
+        assert normalized == png
+
+
+def test_normalize_screenshot_rejects_clipped_view() -> None:
+    buffer = BytesIO()
+    Image.new("RGB", (1000, 513)).save(buffer, format="PNG")
+    with pytest.raises(RenderError, match="aspect ratio"):
+        normalize_screenshot(buffer.getvalue())
+
+
+def test_worker_captures_native_canvas_without_virtual_resizing(tmp_path, monkeypatch) -> None:
+    from demo import render_intro
+
+    (tmp_path / "frames").mkdir()
+    png = BytesIO()
+    Image.new("RGB", (2000, 1200), (24, 24, 24)).save(png, format="PNG")
+    calls = []
+    launches = []
+    process_status = [None]
+
+    def launch(command, **_kwargs):
+        launches.append(command)
+        profile = Path(
+            next(arg.split("=", 1)[1] for arg in command if arg.startswith("--user-data-dir="))
+        )
+        (profile / "DevToolsActivePort").write_text("12345\n")
+        return SimpleNamespace(
+            poll=lambda: process_status[0],
+            terminate=lambda: process_status.__setitem__(0, 0),
+            wait=lambda timeout: process_status[0],
+        )
+
+    def cdp(_ws, method, params=None):
+        calls.append((method, params))
+        if method == "Page.captureScreenshot":
+            return {"data": base64.b64encode(png.getvalue()).decode()}
+        return {}
+
+    target = json.dumps([{"type": "page", "webSocketDebuggerUrl": "ws://unused"}]).encode()
+    connection = SimpleNamespace(
+        request=lambda *_: None,
+        getresponse=lambda: SimpleNamespace(status=200, read=lambda: target),
+        close=lambda: None,
+    )
+    monkeypatch.setattr(render_intro.subprocess, "Popen", launch)
+    monkeypatch.setattr(render_intro.http.client, "HTTPConnection", lambda *a, **kw: connection)
+    monkeypatch.setattr(render_intro, "connect", lambda *a, **kw: nullcontext(object()))
+    monkeypatch.setattr(render_intro, "_cdp", cdp)
+    monkeypatch.setattr(render_intro, "_evaluate", lambda *_: True)
+    render_intro._render_worker("/unused/chrome", tmp_path, "file:///unused", [0], 12)
+
+    assert "--window-size=1200,800" in launches[0]
+    assert not any(method == "Emulation.setDeviceMetricsOverride" for method, _ in calls)
+    params = next(params for method, params in calls if method == "Page.captureScreenshot")
+    assert params["captureBeyondViewport"] is False
+    assert params["clip"] == {"x": 0, "y": 0, "width": 1000, "height": 600, "scale": 1}
+    with Image.open(tmp_path / "frames/frame-000000.png") as frame:
+        assert frame.size == (1000, 600)
+    assert process_status == [0]

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import concurrent.futures
 import hashlib
 import http.client
@@ -16,9 +17,11 @@ import sys
 import threading
 import time
 import xml.etree.ElementTree as ET
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+from PIL import Image
 from websockets.sync.client import connect
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -148,6 +151,19 @@ def _evaluate(ws: Any, expression: str) -> Any:
     return result.get("result", {}).get("value")
 
 
+def normalize_screenshot(png: bytes) -> bytes:
+    """Normalize native-view Retina captures without cropping or distorting the canvas."""
+    with Image.open(BytesIO(png)) as image:
+        if image.width * HEIGHT != image.height * WIDTH:
+            raise RenderError(f"unexpected screenshot aspect ratio: {image.size}")
+        if image.size == (WIDTH, HEIGHT):
+            return png
+        normalized = image.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
+        output = BytesIO()
+        normalized.save(output, format="PNG")
+        return output.getvalue()
+
+
 def _render_worker(
     chrome: str, work_dir: Path, html_url: str, frame_indices: range | list[int], fps: int
 ) -> None:
@@ -156,6 +172,8 @@ def _render_worker(
     command = [
         chrome,
         "--headless=new",
+        # Leave room for browser chrome so the native view contains the full canvas.
+        f"--window-size={WIDTH + 200},{HEIGHT + 200}",
         "--no-first-run",
         "--disable-background-networking",
         "--disable-extensions",
@@ -201,11 +219,7 @@ def _render_worker(
             _cdp(ws, "Runtime.enable")
             _cdp(ws, "Network.enable")
             _cdp(ws, "Network.setBlockedURLs", {"urls": ["http://*", "https://*"]})
-            _cdp(
-                ws,
-                "Emulation.setDeviceMetricsOverride",
-                {"width": WIDTH, "height": HEIGHT, "deviceScaleFactor": 1, "mobile": False},
-            )
+            # Use the native viewport: virtual resizing caused intermittent tiled readbacks.
             _cdp(
                 ws,
                 "Emulation.setEmulatedMedia",
@@ -231,11 +245,18 @@ def _render_worker(
                     "return new Promise(r => requestAnimationFrame(() => "
                     "requestAnimationFrame(() => r(true)))) })(" + str(ms) + ")",
                 )
-                shot = _cdp(ws, "Page.captureScreenshot", {"format": "png", "fromSurface": True})
-                import base64
-
+                shot = _cdp(
+                    ws,
+                    "Page.captureScreenshot",
+                    {
+                        "format": "png",
+                        "fromSurface": True,
+                        "captureBeyondViewport": False,
+                        "clip": {"x": 0, "y": 0, "width": WIDTH, "height": HEIGHT, "scale": 1},
+                    },
+                )
                 (work_dir / "frames" / f"frame-{index:06d}.png").write_bytes(
-                    base64.b64decode(shot["data"])
+                    normalize_screenshot(base64.b64decode(shot["data"]))
                 )
     finally:
         if proc.poll() is None:
