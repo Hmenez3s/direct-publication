@@ -2,7 +2,7 @@
 
 **A urna cifra. A blockchain registra. Você confere.**
 
-Neste protótipo educacional, você vota numa urna offline e recebe um recibo sem o nome do candidato. Só no encerramento os lotes assinados seguem para um contrato na blockchain. Depois, um programa independente confere seu recibo e recalcula a apuração com as provas publicadas.
+Neste protótipo educacional, você vota numa urna offline e recebe um recibo sem o nome do candidato. Só no encerramento a urna fica online e envia o lote assinado direto ao contrato na blockchain. Nenhum intermediário recebe ou altera esses votos: o contrato só aceita o lote assinado pela própria urna. Depois, um programa independente confere seu recibo e recalcula a apuração com as provas publicadas.
 
 [English](README.md) · [Rodar a demo](#rodar) · [Artigo](paper/main.pdf)
 
@@ -13,7 +13,7 @@ A animação acima roda automaticamente e dura 56 segundos. **[Abrir o vídeo co
 ## Quem faz o quê
 
 1. **Urna offline: cifra e emite o recibo.** O recibo sai antes da decisão. `CONFIRM` mantém a cédula cifrada e registra o voto. `TEST` abre a cédula para conferir a escolha, anula essa cédula e exige um novo voto.
-2. **Blockchain: registra os lotes assinados.** Depois do encerramento, cada urna envia seu lote em uma transação. O contrato Solidity confere a assinatura e aceita um único lote por urna registrada, dentro do prazo. As provas dos votos são conferidas fora do contrato. Na demo, a blockchain é um nó Anvil local.
+2. **Blockchain: registra os lotes assinados.** Depois do encerramento, a urna fica online e envia o lote direto. O contrato Solidity confere a assinatura e aceita um único lote por urna registrada, dentro do prazo. O mesário habilita essa conexão simulada só depois do encerramento; o programa da urna não liga a rede antes. Uma cópia de reserva, se for usada, carrega os mesmos bytes assinados. As provas dos votos são conferidas fora do contrato. Na demo, a blockchain é um nó Anvil local.
 3. **Guardiões: abrem a soma.** Três de cinco participantes que guardam partes da chave publicam suas contribuições para decifrar o total auditado. O fluxo não publica a abertura dos votos confirmados.
 4. **Verificador independente: confere recibos e resultado.** Com os arquivos públicos e o seu recibo, ele verifica inclusão, assinaturas, provas e apuração. Se um recibo fornecido estiver ausente, a conferência acusa; cédulas de teste não entram na contagem.
 
@@ -86,8 +86,6 @@ O desenho e o limite de confiança estão em [`docs/architecture.md`](docs/archi
 
 ## Artigo
 
-<!-- BEGIN paper -->
 O artigo registra o protocolo, os oito ataques e as medições: [`paper/main.pdf`](paper/main.pdf). Fontes em [`paper/main.tex`](paper/main.tex), [`paper/refs.bib`](paper/refs.bib) e [`paper/figures/evaluation.py`](paper/figures/evaluation.py). Com Tectonic 0.17.0 instalado, `uv sync --locked` e `make paper` recompilam o PDF. A classe LNCS e o estilo bibliográfico estão no repositório. Autoria coletiva. É um manuscrito educacional, não uma publicação revisada por pares.
-<!-- END paper -->
 
 Metadados de citação: [`CITATION.cff`](CITATION.cff). *Urna Aberta contributors. Urna Aberta: An Offline Ballot Protocol with Publicly Checkable Evidence.*

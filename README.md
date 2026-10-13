@@ -2,7 +2,7 @@
 
 **The machine encrypts. The blockchain records. You verify.**
 
-In this educational prototype, you vote on an offline machine and receive a receipt that does not name your candidate. Only after polls close do signed batches go to a blockchain contract. A separate program then checks your receipt and recomputes the tally from the published proofs.
+In this educational prototype, you vote on an offline machine and receive a receipt that does not name your candidate. Only after polls close does the machine go online and send its signed batch straight to the blockchain contract. No intermediary receives or changes the votes: the contract accepts only the batch signed by that machine. A separate program then checks your receipt and recomputes the tally from the published proofs.
 
 [Português brasileiro](README.pt-BR.md) · [Run the demo](#run-it) · [Paper](paper/main.pdf)
 
@@ -13,7 +13,7 @@ The animation above plays automatically and lasts 56 seconds. **[Open the video 
 ## Who does what
 
 1. **Offline machine: encrypts and issues the receipt.** The receipt comes before the decision. `CONFIRM` keeps the ballot encrypted and casts it. `TEST` opens the ballot to check the choice, voids that ballot, and requires a fresh vote.
-2. **Blockchain: records signed batches.** After polls close, each machine submits its batch as a transaction. The Solidity contract checks the signature and accepts one batch per registered machine within the deadline. Ballot proofs are checked outside the contract. The demo's blockchain is a local Anvil node.
+2. **Blockchain: records signed batches.** After polls close, the machine goes online and submits its batch directly. The Solidity contract checks the signature and accepts one batch per registered machine within the deadline. A poll worker enables that simulated connection after close; the voting software cannot turn it on early. A fallback copy, if used, carries the same signed bytes. Ballot proofs are checked outside the contract. The demo's blockchain is a local Anvil node.
 3. **Trustees: decrypt the sum.** Three of five key-share holders publish contributions to decrypt the audited total. The flow does not publish the openings of confirmed ballots.
 4. **Independent verifier: checks receipts and results.** Using public files and your receipt, it checks inclusion, signatures, proofs, and the tally. A missing supplied receipt fails verification; test ballots do not count.
 
@@ -86,8 +86,6 @@ The design and the trust boundary are in [`docs/architecture.md`](docs/architect
 
 ## Paper
 
-<!-- BEGIN paper -->
 The paper records the protocol, the eight attacks, and the measurements: [`paper/main.pdf`](paper/main.pdf). Sources: [`paper/main.tex`](paper/main.tex), [`paper/refs.bib`](paper/refs.bib), and [`paper/figures/evaluation.py`](paper/figures/evaluation.py). With Tectonic 0.17.0 installed, `uv sync --locked` and `make paper` rebuild the PDF. The LNCS class and bibliography style are in the repository. Collective authorship. This is an educational manuscript, not a peer-reviewed publication.
-<!-- END paper -->
 
 Citation metadata: [`CITATION.cff`](CITATION.cff). *Urna Aberta contributors. Urna Aberta: An Offline Ballot Protocol with Publicly Checkable Evidence.*
