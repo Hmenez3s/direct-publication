@@ -198,6 +198,25 @@ def test_invalid_trustee_contributions_are_excluded_but_reported(election):
         verify_election(manifest, replace(evidence, partials=tuple(events[:4])), receipts)
 
 
+def test_trustee_payload_identity_lie_is_reported_without_counting_it(election):
+    _, _, manifest, receipts, evidence, _ = election
+    # The contract authenticates event index 4, but permits that trustee to submit
+    # arbitrary payload bytes. Copying index 1's payload must neither count as a
+    # valid fourth contribution nor veto the three genuinely valid contributions.
+    lying_payload = replace(evidence.partials[0], trustee_index=4)
+    report = verify_election(
+        manifest, replace(evidence, partials=(*evidence.partials, lying_payload)), receipts
+    )
+    assert report.totals == (2, 0)
+    assert report.rejected_trustees == (4,)
+    with pytest.raises(ValueError, match="three valid trustee partials"):
+        verify_election(
+            manifest,
+            replace(evidence, partials=(*evidence.partials[:2], lying_payload)),
+            receipts,
+        )
+
+
 def test_partial_event_integrity_and_identity_remain_fatal(election):
     _, _, manifest, receipts, evidence, _ = election
     altered_hash = replace(evidence.partials[0], payload_hash="ff" * 32)

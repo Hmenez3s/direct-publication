@@ -412,6 +412,43 @@ def test_integration_two_wrong_first_digests_leave_honest_tally_available(integr
     assert report.cast_count == 0
 
 
+def test_integration_faulty_payload_cannot_impersonate_another_trustee(integration_chain):
+    chain = integration_chain
+    dealer, machines, _, manifest, board, payload = _integration_setup(chain)
+    signature = sign_batch(
+        chain.chain_id, manifest.board_address, manifest.election_id, payload, machines[0].key
+    )
+    post_batch(chain, board, machines[0], payload, signature)
+    advance_time(chain, manifest.batch_deadline + 1)
+    evidence = read_evidence(chain, board, manifest)
+    partials = tuple(
+        partial_for_final_tally(manifest, evidence, share) for share in dealer.shares[:3]
+    )
+    digest = partials[0].aggregate_digest
+    # Trustee 4 can submit opaque bytes claiming trustee 1. The event still
+    # authenticates trustee 4, so only that faulty contribution is excluded.
+    post_partial(
+        chain, board, chain.accounts[5], evidence.snapshot_hash, digest, partials[0].to_bytes()
+    )
+    for offset, partial in enumerate(partials):
+        post_partial(
+            chain,
+            board,
+            chain.accounts[offset + 2],
+            evidence.snapshot_hash,
+            digest,
+            partial.to_bytes(),
+        )
+        if offset == 1:
+            with pytest.raises(ValueError, match="three valid trustee partials"):
+                verify_election(manifest, read_evidence(chain, board, manifest))
+    evidence = read_evidence(chain, board, manifest)
+    assert evidence.partials[0].trustee_index == 4
+    report = verify_election(manifest, evidence)
+    assert report.totals == (0, 0)
+    assert report.rejected_trustees == (4,)
+
+
 def _web3_hex(value: bytes) -> str:
     """Render an RPC bytes32 value in the schema's lowercase prefix-free form."""
     return bytes(value).hex()
