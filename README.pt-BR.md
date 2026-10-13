@@ -2,38 +2,47 @@
 
 **Máquinas de votação que provam seu próprio resultado, sem confiar em ninguém.**
 
-Essa frase expressa uma visão educacional, não uma garantia literal sem confiança. Este protótipo de pesquisa tem pressupostos explícitos de confiança: manifesto eleitoral e distribuidor central confiáveis, trustees, software da máquina e host, e uma exportação completa e honesta do registro. Ele não prova que um dispositivo ou sistema operacional real executou código aprovado, não impede coerção e não oferece segurança para eleições de produção. Consulte a [arquitetura](docs/architecture.md) e o [modelo de ameaças](docs/threat-model.md).
+Protótipo educacional de uma eleição que dá para conferir. Você escolhe um candidato. A urna, offline, imprime um recibo assinado antes de você confirmar ou testar a cédula. O que foi confirmado sai cifrado, embaralhado e sem horário. Um programa separado lê o mural público e recalcula a apuração.
 
 [![CI configurada](https://img.shields.io/badge/CI-configurada-lightgrey)](.github/workflows/ci.yml) [![Apache 2.0](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-blue)](LICENSE) [![PDF do artigo](https://img.shields.io/badge/artigo-PDF-2F6B5F)](paper/main.pdf)
 
-A CI está configurada no workflow vinculado; ela não foi executada remotamente. Os badges identificam configuração e licença, não uma compilação remota aprovada nem um artigo publicado.
-
 ![Demonstração: uma eleição local verificável](docs/demo.gif)
 
-O GIF é uma captura real com VHS. A receita para reproduzi-la está em [`docs/demo.tape`](docs/demo.tape); ela executa `uv run python -m demo.capture` e aguarda 90 segundos. Os pré-requisitos e o estado do cache afetam a duração.
+A animação é uma captura real dessa demo, gravada com VHS. A receita está em [`docs/demo.tape`](docs/demo.tape).
 
-## Como funciona em 3 etapas
+## Três passos
 
-1. **Preparar e escolher:** a máquina offline imprime um recibo assinado antes de a pessoa confirmar a cédula ou selecionar `TEST`. A cédula testada é anulada e revela sua abertura; uma cédula confirmada não publica sua aleatoriedade.
-2. **Publicar:** depois do encerramento, cada máquina registrada assina e publica um lote completo na bulletin board Solidity append-only. A demonstração usa uma blockchain local Anvil.
-3. **Verificar:** trustees publicam partes de descriptografia limiar para o agregado auditado; o verificador Python separado confere manifesto, lotes, provas das cédulas, recibos, provas dos trustees e totais.
+1. **Votar.** A urna cifra a escolha e imprime o recibo primeiro. `CONFIRM` guarda a abertura e registra a cédula. `TEST` abre a cédula, anula esse voto e deixa você votar de novo.
+2. **Publicar.** Encerrada a votação, cada urna registrada assina um único lote completo e envia ao mural em Solidity. Na demo, o mural roda num nó Anvil local.
+3. **Conferir.** Três de cinco trustees publicam as partes da descriptografia do total auditado. O verificador em Python confere manifesto, assinaturas, provas das cédulas, recibos, provas dos trustees e a apuração. Cédula anulada fica de fora.
 
 ```mermaid
 flowchart LR
   V[Eleitor] -->|escolhe, depois CONFIRM ou TEST| U[Urna offline]
-  U -->|lote completo assinado após encerramento| B[Bulletin board Solidity]
-  B -->|evidência pública copiada| X[Verificador Python independente]
-  T[3 de 5 trustees] -->|descriptografias parciais verificadas| B
-  X -->|relatório reproduzível| R[Status CAST e apuração]
+  U -->|lote assinado, depois do encerramento| B[Mural Solidity]
+  B -->|evidência pública| X[Verificador Python]
+  T[3 de 5 trustees] -->|partes da descriptografia| B
+  X --> R[Apuração]
 ```
 
-O diagrama descreve o fluxo do protótipo, não instituições independentes no mundo real. Três trustees em conluio podem descriptografar cifras individuais; a descriptografia apenas do agregado é uma política da API, não uma impossibilidade criptográfica. O processo de demonstração possui as cinco partes.
+Na demo medida, duas urnas registram seis votos e anulam um teste, com três candidatos. O verificador público acha o recibo e apura `(2, 2, 2)`.
 
-## Início rápido
+## Rodar
+
+Instale Python 3.12, uv 0.11.7, Foundry 1.8.5 (`forge` e `anvil`) e solc 0.8.28.
+
+```sh
+uv sync --locked
+make demo
+```
+
+`make demo` compila o contrato, sobe um Anvil só dessa execução e imprime a apuração do verificador. Nas três execuções medidas, do zero, os tempos foram 56.5907 s, 56.1745 s e 56.1649 s, sem contar a instalação das ferramentas. As amostras estão em [`demo/results/measurements.json`](demo/results/measurements.json).
+
+A mesma evidência, já executada, está em [`demo/notebook.ipynb`](demo/notebook.ipynb).
 
 ### Docker Compose
 
-Execute somente dentro de uma VM privada, descartável e realmente isolada que você controla, sem montagens do host. Os dois valores `true` são declarações do operador exigidas pelo Compose, não mecanismos de isolamento. Não use chaves de produção, blockchain de produção nem uma rede exposta. A semente Anvil é material público de teste.
+O Compose sobe o Anvil e a demo numa rede interna, sem portas publicadas e sem volumes do host. Só inicia depois que você declara que o ambiente é uma VM privada isolada, sem montagens do host. Use um ambiente descartável. A semente do Anvil no arquivo é material público de teste.
 
 ```sh
 RUN_ID="$(python3 -c 'import uuid; print(uuid.uuid4().hex)')" && \
@@ -43,55 +52,44 @@ URNA_COMPOSE_NO_HOST_MOUNTS=true \
 docker compose -p "urna-aberta-$RUN_ID" up --build --abort-on-container-exit --exit-code-from demo
 ```
 
-Isso inicia uma rede interna, sem portas publicadas nem volumes do host. O comando pode baixar imagens e compilar a imagem. Em ARM, usa emulação amd64 apenas na etapa de compilação do compilador Solidity; Python e Anvil rodam nativamente. A eleição local do Compose foi executada com sucesso em uma VM descartável sem montagens, com isolamento verificado: duas cédulas CAST, apuração `(1, 1)` e código de saída 0. Isso é evidência de execução local, não CI remota nem certificação de instituições independentes.
+Em ARM, a imagem usa emulação amd64 só na etapa do compilador Solidity. Python e Anvil rodam nativos. Uma execução verificada, numa VM local sem montagens, terminou com dois votos confirmados e apuração `(1, 1)`.
 
-### Desenvolvimento nativo
+## O que a demo pega
 
-Instale Python 3.12, `uv` 0.11.7, Foundry 1.8.5 (`forge` e `anvil`) e Solidity 0.8.28 (`solc`). Depois:
+`make attacks` roda as oito. Cada comando monta a falha e só termina bem quando a conferência pega.
 
-```sh
-uv sync --locked
-make demo
-```
-
-`make demo` compila o contrato e executa a demonstração de ponta a ponta em seu próprio processo filho Anvil local. Os comandos criam dependências no projeto e arquivos temporários de saída da demonstração. Não configure as ferramentas para usar uma blockchain compartilhada ou de produção. A primeira demonstração completa levou 56.5907 segundos no ambiente medido; duas execuções posteriores, cada uma em processo e nó novos, levaram 56.1745 e 56.1649 segundos. Esses tempos não incluem instalação de ferramentas nem o primeiro download/compilação da imagem Docker e não são uma promessa de duração inferior a dois minutos. Consulte [`demo/results/measurements.json`](demo/results/measurements.json) para amostras brutas e ambiente.
-
-## Demonstrações de ataques
-
-Cada comando demonstra a detecção da falha indicada. São demonstrações locais, não provas contra todos os ataques.
-
-| Ataque | Demonstração | Comando |
+| Falha | O que aparece | Comando |
 | --- | --- | --- |
-| Máquina maliciosa / abertura TEST falsa | Rejeita uma abertura incompatível com a escolha cifrada | [`attacks/machine.py`](attacks/machine.py), `make attack-machine` |
-| Transporte adulterado | Bytes assinados alterados falham na validação e o contrato real os rejeita | [`attacks/transport.py`](attacks/transport.py), `make attack-transport` |
-| Voto omitido | Detecta recibo retido ausente de um lote reassinado | [`attacks/drop_vote.py`](attacks/drop_vote.py), `make attack-drop-vote` |
-| Apuração falsa | Rejeita totais anunciados diferentes dos totais verificados | [`attacks/tally.py`](attacks/tally.py), `make attack-tally` |
-| Lote duplicado | O contrato rejeita um segundo lote da mesma máquina | [`attacks/duplicate.py`](attacks/duplicate.py), `make attack-duplicate` |
-| Máquina não registrada | O contrato rejeita um signatário não registrado | [`attacks/rogue_machine.py`](attacks/rogue_machine.py), `make attack-rogue-machine` |
-| Voto duplo | A prova de exatamente um rejeita uma cédula com dois bits iguais a um | [`attacks/double_vote.py`](attacks/double_vote.py), `make attack-double-vote` |
-| Rede antecipada | O aplicativo não consegue habilitar o transporte simulado antes do encerramento | [`attacks/early_network.py`](attacks/early_network.py), `make attack-early-network` |
+| Urna mentirosa | Abertura de teste que não bate com a escolha cifrada | [`attacks/machine.py`](attacks/machine.py), `make attack-machine` |
+| Transporte alterado | Bytes assinados que deixaram de bater, recusados pelo contrato | [`attacks/transport.py`](attacks/transport.py), `make attack-transport` |
+| Voto sumido | Recibo que falta num lote reassinado | [`attacks/drop_vote.py`](attacks/drop_vote.py), `make attack-drop-vote` |
+| Apuração falsa | Total anunciado diferente do total conferido | [`attacks/tally.py`](attacks/tally.py), `make attack-tally` |
+| Segundo lote | A mesma urna publicando de novo | [`attacks/duplicate.py`](attacks/duplicate.py), `make attack-duplicate` |
+| Urna desconhecida | Assinatura de quem não foi registrado | [`attacks/rogue_machine.py`](attacks/rogue_machine.py), `make attack-rogue-machine` |
+| Duas escolhas | Cédula com dois candidatos marcados | [`attacks/double_vote.py`](attacks/double_vote.py), `make attack-double-vote` |
+| Rede cedo | Transporte habilitado antes do encerramento | [`attacks/early_network.py`](attacks/early_network.py), `make attack-early-network` |
 
-Execute as oito demonstrações com `make attacks`. Elas usam fixtures locais e processos Anvil próprios quando necessário; não as direcione a outra blockchain.
+## Para que serve o mural
 
-## Por que blockchain em vez de banco de dados replicado?
+O mural é o registro público dos lotes assinados e das partes dos trustees. O contrato aceita um lote de cada urna registrada e recusa repetição, assinante desconhecido ou bytes alterados. As provas das cédulas ficam com o verificador. Qualquer pessoa roda esse verificador nos arquivos publicados.
 
-A bulletin board demonstra uma interface pública append-only para lotes assinados pelas máquinas e envios dos trustees, com hash de snapshot reproduzível. Um banco de dados replicado convencional poderia oferecer registro e controle de acesso semelhantes com menos complexidade. O contrato não valida provas de conhecimento zero das cédulas, não oferece disponibilidade dos dados além de seus eventos e não cria independência institucional. Anvil é um simulador local de nó único, não consenso ou finalização de um consórcio. Reorganizações, censura, indisponibilidade de RPC, custos de gas, calldata e limites de bloco continuam relevantes em uma rede real. Vários nós em um computador não são validadores independentes; instituições precisariam operar e auditar validadores independentes. Trustees não são automaticamente validadores do registro.
+Um banco replicado também guardaria esses bytes. A blockchain deixa a regra de inclusão explícita e repetível. O Anvil da demo é local. Ele executa o contrato de verdade. É um processo só, então não faz o papel de validadores independentes, e um JSON copiado não prova que uma rede chegou a consenso.
 
-## Limitações e pressupostos de confiança
+## Até onde isto vai
 
-- **Configuração:** o verificador depende de um manifesto confiável e de um distribuidor central confiável. Não há geração distribuída de chaves. O processo de demonstração possui todas as cinco partes dos trustees. Três trustees em conluio podem descriptografar cifras arbitrárias, embora o wrapper público só libere o agregado final auditado.
-- **Dispositivo e lacre:** chave física, transporte desligado, reinstalação/limpeza e verificações de hash são simulações em área temporária, não isolamento físico, secure boot, atestação do sistema operacional ou apagamento seguro. Verificações de hash precedem os votos da demonstração, mas não atestam o sistema operacional executado nem suas dependências. Um recibo é assinado antes da decisão e não prova o acionamento de um botão físico. Seu prefixo de busca de 80 bits é apenas um localizador; são necessários o hash completo e a assinatura.
-- **Integridade e privacidade da cédula:** a máquina de brinquedo aceita várias cédulas válidas sem credenciais de eleitor. Elegibilidade, reconciliação de comparecimento, prevenção de enchimento de cédulas e regra de uma pessoa por voto não estão implementadas. `TEST` revela escolha e aleatoriedade; coerção, participação nos desafios e seleção imprevisível de desafios continuam sem solução. Software malicioso poderia registrar segredos; Python não é de tempo constante.
-- **Evidência e blockchain:** o JSON copiado é verificado supondo-se que seja uma exportação autêntica, honesta e completa. Não é um cliente leve nem uma prova de consenso. O contrato append-only pode ser reiniciado pelo operador Anvil; execução local de nó único não é finalização de consórcio. O primeiro trustee a fixar um agregado inválido pode causar negação de serviço permanente. Qualquer prova inválida enviada interrompe a verificação. Nenhuma prova de cédula é verificada on-chain.
-- **Escala e operação:** o protótipo limita eleições a 16 máquinas e apuração a 16.000. Disponibilidade, censura, reorganização, gas, calldata e limites de bloco não permitem alegar escala nacional. Adoção legal, governança de implantação, validação independente e segurança operacional estão fora do escopo.
-- **Probabilidade de detecção:** o [gráfico de desafios](docs/figures/challenge-probability.png) usa a expressão analítica `1 - (1 - p)^k`. Ela pressupõe decisões `TEST` independentes e imprevisíveis, tomadas após o compromisso; não é proteção empírica medida nem garantia.
+- O dealer das chaves é confiável, e a demo guarda as cinco partes. Três trustees que juntarem as partes leem votos individuais. A API pública devolve a apuração auditada.
+- Interruptor, lacre, reinstalação e verificação de hash rodam num diretório temporário. Modelam o ritual. O recibo prova que aquela urna assinou aquela cédula. O prefixo curto de 80 bits só serve para achar. Decidem o hash completo e a assinatura.
+- Não há lista de eleitores. A urna aceita outra cédula bem formada. Elegibilidade, comparecimento e coerção ficam fora deste código.
+- `TEST` mostra a escolha e a aleatoriedade. Se os testes forem independentes e imprevisíveis depois do recibo, a chance de pegar uma urna que mente é `1 - (1 - p)^k`, no gráfico [`docs/figures/challenge-probability.png`](docs/figures/challenge-probability.png).
+- Um manifesto aceita no máximo 16 urnas, 1000 cédulas em cada e apuração até 16000. A conta do artigo para 500000 urnas e 150 milhões de eleitores extrapola estas medições, com as hipóteses escritas lá.
+- Um pin errado de trustee trava o agregado. A verificação para na primeira prova inválida.
 
-Os valores de desempenho são medições de um ambiente registrado, não evidência de segurança ou promessa de nível de serviço. Amostras JSON brutas, recibos de gas, tamanhos de payload, bytes de provas, proveniência e relatório do verificador estão em [`demo/results/`](demo/results/). Não alegamos primitivas criptográficas novas nem garantia de novidade.
+O desenho e o limite de confiança estão em [`docs/architecture.md`](docs/architecture.md) e [`docs/threat-model.md`](docs/threat-model.md).
 
 ## Artigo
 
 <!-- BEGIN paper -->
-**PDF do artigo de pesquisa:** [paper/main.pdf](paper/main.pdf) (autoria coletiva; projeto educacional, não uma publicação revisada por pares). Fontes: [LaTeX](paper/main.tex), [bibliografia](paper/refs.bib) e script reproduzível do gráfico [`paper/figures/evaluation.py`](paper/figures/evaluation.py). Instale Tectonic 0.17.0, execute `uv sync --locked` e recompile com `make paper`. A classe LNCS e o estilo bibliográfico estão incluídos.
+O artigo registra o protocolo, os oito ataques e as medições: [`paper/main.pdf`](paper/main.pdf). Fontes em [`paper/main.tex`](paper/main.tex), [`paper/refs.bib`](paper/refs.bib) e [`paper/figures/evaluation.py`](paper/figures/evaluation.py). Com Tectonic 0.17.0 instalado, `uv sync --locked` e `make paper` recompilam o PDF. A classe LNCS e o estilo bibliográfico estão no repositório. Autoria coletiva. É um manuscrito educacional, não uma publicação revisada por pares.
 <!-- END paper -->
 
-Os metadados de citação estão em [`CITATION.cff`](CITATION.cff). Citação sugerida: *Urna Aberta contributors. Urna Aberta: An Offline Ballot Protocol with Publicly Checkable Evidence.* Manuscrito de pesquisa, projeto educacional.
+Metadados de citação: [`CITATION.cff`](CITATION.cff). *Urna Aberta contributors. Urna Aberta: An Offline Ballot Protocol with Publicly Checkable Evidence.*
