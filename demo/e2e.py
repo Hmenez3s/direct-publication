@@ -159,6 +159,7 @@ def run_demo(output_root: str | Path, screen: Screen | None = None) -> dict[str,
     screen.software()
     transcript = StringIO()
     gas: list[dict[str, int | str]] = []
+    carrier_warnings: list[str] = []
     run_id = hashlib.sha256(os.urandom(32)).hexdigest()[:16]
     with redirect_stdout(transcript), owned_anvil() as chain:
         election_id = hashlib.sha256(os.urandom(32)).hexdigest()
@@ -242,13 +243,19 @@ def run_demo(output_root: str | Path, screen: Screen | None = None) -> dict[str,
             batch = machine.close()
             switch = switches[machine_number]
             switch.poll_worker_seal(machine)
+            payload = bytes.fromhex(batch.payload_hex)
+            receipt = post_batch(chain, board, account, payload, batch.signature)
+            # The optional physical copy must not gate successful direct publication.
             carrier_path = root / f"carrier-machine-{machine_number + 1}.bin"
-            carrier_bytes = export_carrier(switch, machine, manifest, carrier_path)
-            if carrier_bytes != batch.to_bytes():
-                raise RuntimeError("carrier bytes differ from finalized signed batch")
-            signed = type(batch).from_bytes(carrier_bytes)
-            payload = bytes.fromhex(signed.payload_hex)
-            receipt = post_batch(chain, board, account, payload, signed.signature)
+            try:
+                carrier_bytes = export_carrier(switch, machine, manifest, carrier_path)
+            except OSError as exc:
+                warning = f"Optional carrier unavailable for machine {machine_number + 1}: {exc}"
+                carrier_warnings.append(warning)
+                print(warning, file=sys.stderr)
+            else:
+                if carrier_bytes != batch.to_bytes():
+                    raise RuntimeError("carrier bytes differ from finalized signed batch")
             gas.append(
                 {
                     "kind": "batch",
@@ -262,7 +269,7 @@ def run_demo(output_root: str | Path, screen: Screen | None = None) -> dict[str,
             )
             print(
                 "POLL-WORKER SEAL simulation bound to machine "
-                f"{machine_number + 1}; exact carrier published"
+                f"{machine_number + 1}; exact signed batch published directly"
             )
             published = BatchPayload.from_bytes(payload)
             screen.published(machine_number + 1, len(published.cast), len(published.spoiled))
@@ -335,6 +342,7 @@ def run_demo(output_root: str | Path, screen: Screen | None = None) -> dict[str,
             "batches": len(evidence.batches),
             "trustee_partials": len(evidence.partials),
             "gas_receipts": gas,
+            "carrier_warnings": carrier_warnings,
             "lookup": report.get("lookup"),
             "public_verifier_seconds": verifier_seconds,
             "scratch_reinstall": reinstall,

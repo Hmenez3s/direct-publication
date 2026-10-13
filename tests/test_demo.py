@@ -92,6 +92,7 @@ def test_integration_real_election_demo_exports_publicly_verifiable_evidence(
     assert summary["spoiled_ballots"] == 1
     assert summary["batches"] == summary["machines"] == 2
     assert summary["trustee_partials"] == 3
+    assert summary["carrier_warnings"] == []
     assert summary["scratch_reinstall"]["previous_owned_image_removed"] is True
     assert summary["scratch_reinstall"]["reread_sha256"] == APPROVED_CORE_SHA256
     report = json.loads((output / "verifier-report.json").read_text(encoding="utf-8"))
@@ -110,7 +111,26 @@ def test_integration_real_election_demo_exports_publicly_verifiable_evidence(
     assert "SPOILED" in transcript["stdout"]
     assert "PUBLIC VERIFIER tally: [2, 2, 2]" in transcript["stdout"]
     assert transcript["stdout"].index("POLLS CLOSED locally") < transcript["stdout"].index(
-        "exact carrier published"
+        "exact signed batch published directly"
     )
     assert all(item["gas_used"] > 0 for item in summary["gas_receipts"])
     assert all(len(item["transaction_hash"]) == 64 for item in summary["gas_receipts"])
+
+
+def test_integration_direct_publication_survives_optional_carrier_failure(tmp_path, monkeypatch):
+    def unavailable_carrier(*_args, **_kwargs):
+        raise OSError("injected unavailable removable media")
+
+    monkeypatch.setattr("demo.e2e.export_carrier", unavailable_carrier)
+    output = tmp_path / "no-carrier-demo"
+    summary = run_demo(output, Screen(file=StringIO()))
+    assert summary["batches"] == 2
+    assert summary["cast_ballots"] == 6
+    assert len(summary["carrier_warnings"]) == 2
+    assert all("injected unavailable" in warning for warning in summary["carrier_warnings"])
+    assert not list(output.glob("carrier-machine-*.bin"))
+    report = json.loads((output / "verifier-report.json").read_text())
+    assert report["report"]["totals"] == [2, 2, 2]
+    assert report["report"]["rejected_trustees"] == []
+    transcript = json.loads((output / "transcript.json").read_text())
+    assert transcript["run"]["carrier_warnings"] == summary["carrier_warnings"]
