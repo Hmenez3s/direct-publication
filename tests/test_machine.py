@@ -10,9 +10,16 @@ import pytest
 from eth_account import Account
 
 from trustees.dealer import create_dealer
-from urna.crypto import verify_ballot, verify_opening
+from urna.crypto import make_ballot, verify_ballot, verify_opening
 from urna.machine import VotingMachine
-from urna.schema import BatchPayload, ElectionManifest, TrusteePublic, ballot_commitment
+from urna.schema import (
+    BatchPayload,
+    CastBallot,
+    ElectionManifest,
+    SpoiledBallot,
+    TrusteePublic,
+    ballot_commitment,
+)
 from urna.signing import (
     sign_receipt,
     verify_batch_signature,
@@ -222,6 +229,55 @@ def test_real_cli_flushes_signed_receipt_before_reading_test_decision() -> None:
             "receipts.json",
             "signed_batch.json",
         ]
+
+
+def test_prepare_rejects_payload_over_limit_before_printing_receipt(monkeypatch) -> None:
+    monkeypatch.setattr("urna.schema.MAX_PAYLOAD_BYTES", 1000)
+    _, _, machine = setup_machine()
+    stream = StreamSpy()
+
+    with pytest.raises(RuntimeError, match="capacity.*no new receipt"):
+        machine.prepare(0, output=stream)
+    assert stream.value == ""
+    assert not stream.flushed
+    with pytest.raises(RuntimeError, match="no prepared"):
+        machine.confirm()
+
+    monkeypatch.setattr("urna.schema.MAX_PAYLOAD_BYTES", 16 * 1024 * 1024)
+    machine.prepare(0, output=stream)
+    machine.confirm()
+    assert len(BatchPayload.from_bytes(bytes.fromhex(machine.close().payload_hex)).cast) == 1
+
+
+def test_payload_boundary_accounts_for_spoiled_opening_and_preserves_prior_ballot(
+    monkeypatch,
+) -> None:
+    manifest, _, machine = setup_machine()
+    stream = StreamSpy()
+    machine.prepare(1, output=stream)
+    prior_spoiled = machine.test()
+    ballot, randomness = make_ballot(manifest, 0)
+    commitment = ballot_commitment(ballot)
+    candidate_cast = CastBallot(commitment, ballot)
+    candidate_spoiled = SpoiledBallot(commitment, ballot, 0, randomness)
+    cast_size = len(machine._batch_payload((candidate_cast,), tuple(machine._spoiled)).to_bytes())
+    spoiled_size = len(
+        machine._batch_payload(
+            tuple(machine._cast), (*machine._spoiled, candidate_spoiled)
+        ).to_bytes()
+    )
+    assert spoiled_size > cast_size
+
+    monkeypatch.setattr("urna.schema.MAX_PAYLOAD_BYTES", cast_size)
+    monkeypatch.setattr("urna.machine.make_ballot", lambda _manifest, _choice: (ballot, randomness))
+    printed = stream.value
+    with pytest.raises(RuntimeError, match="capacity.*no new receipt"):
+        machine.prepare(0, output=stream)
+    assert stream.value == printed
+
+    payload = BatchPayload.from_bytes(bytes.fromhex(machine.close().payload_hex))
+    assert payload.spoiled == (prior_spoiled,)
+    assert len(payload.to_bytes()) <= cast_size
 
 
 def test_full_machine_refuses_before_printing_an_unpublishable_receipt(monkeypatch) -> None:

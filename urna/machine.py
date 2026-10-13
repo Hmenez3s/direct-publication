@@ -76,6 +76,13 @@ class VotingMachine:
                 CastBallot(commitment, ballot),
                 SpoiledBallot(commitment, ballot, choice_index, randomness),
             )
+            try:
+                self._batch_payload((*self._cast, prepared.cast_ballot), tuple(self._spoiled))
+                self._batch_payload(tuple(self._cast), (*self._spoiled, prepared.spoiled_ballot))
+            except ValueError as exc:
+                raise RuntimeError(
+                    "batch capacity would be exceeded; no new receipt was issued"
+                ) from exc
             output.write("PREPARED RECEIPT " + receipt.to_bytes().decode("ascii") + "\n")
             output.flush()
             self._pending = prepared
@@ -111,16 +118,7 @@ class VotingMachine:
             secrets.SystemRandom().shuffle(combined)
             cast = tuple(item for kind, item in combined if kind == "CAST")
             spoiled = tuple(item for kind, item in combined if kind == "SPOILED")
-            payload = BatchPayload(
-                schema_version=1,
-                election_id=self._manifest.election_id,
-                manifest_hash=manifest_digest(self._manifest),
-                chain_id=self._manifest.chain_id,
-                board_address=self._manifest.board_address,
-                machine_address=self._machine_address,
-                cast=cast,
-                spoiled=spoiled,
-            )
+            payload = self._batch_payload(cast, spoiled)
             self._closed = SignedBatch(
                 payload.to_bytes().hex(),
                 sign_batch(
@@ -132,6 +130,20 @@ class VotingMachine:
                 ),
             )
             return self._closed
+
+    def _batch_payload(
+        self, cast: tuple[CastBallot, ...], spoiled: tuple[SpoiledBallot, ...]
+    ) -> BatchPayload:
+        return BatchPayload(
+            schema_version=1,
+            election_id=self._manifest.election_id,
+            manifest_hash=manifest_digest(self._manifest),
+            chain_id=self._manifest.chain_id,
+            board_address=self._manifest.board_address,
+            machine_address=self._machine_address,
+            cast=cast,
+            spoiled=spoiled,
+        )
 
     def _ensure_open(self) -> None:
         if self._closed is not None:
