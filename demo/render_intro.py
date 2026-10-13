@@ -311,6 +311,13 @@ def render(
             str(workers),
             "-c:v",
             "libx264",
+            # Explicit quality avoids block noise around fine strokes and fades.
+            "-crf",
+            "16",
+            "-preset",
+            "slow",
+            "-tune",
+            "animation",
             "-pix_fmt",
             "yuv420p",
             "-movflags",

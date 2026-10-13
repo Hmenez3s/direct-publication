@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from types import SimpleNamespace
+
 import pytest
 
 from demo.render_intro import frame_schedule, inspect_source, main, render, validate_limits
@@ -108,3 +111,32 @@ def test_existing_output_root_is_never_reused(tmp_path, monkeypatch) -> None:
     with pytest.raises(FileExistsError):
         render(source, output, 12, 1)
     assert marker.read_text(encoding="utf-8") == "untouched"
+
+
+def test_render_pins_screen_animation_encoding_quality(tmp_path, monkeypatch) -> None:
+    def capture_frames(_chrome, work_dir, _url, indices, _fps):
+        for index in indices:
+            (work_dir / "frames" / f"frame-{index:06d}.png").write_bytes(b"test frame")
+
+    commands = []
+
+    def encode(command, **_kwargs):
+        commands.append(command)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr("demo.render_intro.find_chrome", lambda _: "/unused/chrome")
+    monkeypatch.setattr("demo.render_intro.shutil.which", lambda _: "/unused/ffmpeg")
+    monkeypatch.setattr("demo.render_intro._render_worker", capture_frames)
+    monkeypatch.setattr("demo.render_intro.subprocess.run", encode)
+    source = tmp_path / "intro.svg"
+    source.write_text(valid_svg(), encoding="utf-8")
+    output = tmp_path / "render"
+    render(source, output, fps=1, workers=1)
+
+    assert len(commands) == 1
+    command = commands[0]
+    for flag, value in (("-crf", "16"), ("-preset", "slow"), ("-tune", "animation")):
+        assert flag in command
+        assert command[command.index(flag) + 1] == value
+    assert command[command.index("-pix_fmt") + 1] == "yuv420p"
+    assert json.loads((output / "render.json").read_text())["command"] == command
