@@ -1,22 +1,25 @@
 # Urna Aberta
 
-**Voto secreto. Recibo verificável. Resultado que você confere.**
+**A urna cifra. A blockchain registra. Você confere.**
 
-Um novo sistema de votação, em forma de protótipo educacional. A urna entrega um recibo sem revelar o candidato. Você confere se sua cédula entrou na apuração. Qualquer pessoa pode verificar as provas públicas e recalcular o resultado, sem usar o programa da urna.
+Neste protótipo educacional, você vota numa urna offline e recebe um recibo sem o nome do candidato. Só no encerramento os lotes assinados seguem para um contrato na blockchain. Depois, um programa independente confere seu recibo e recalcula a apuração com as provas publicadas.
 
 [English](README.md) · [Rodar a demo](#rodar) · [Artigo](paper/main.pdf)
 
-![Do boletim com totais ao recibo individual: conheça a proposta Urna Aberta](docs/intro.pt-BR.svg)
+[![Como um recibo liga a urna offline à blockchain e à conferência pública](docs/intro.pt-BR.png)](docs/intro.pt-BR.mp4)
 
-**O que muda?** No Brasil, o Boletim de Urna permite comparar os totais da seção com os publicados pelo TSE. Ele não é um recibo individual da cédula. A Urna Aberta explora essa conferência por recibo, além dos testes de abertura e da verificação da apuração. [Contexto e fontes oficiais](docs/media.md#brazilian-system-context).
+**[Assistir à explicação: 56 segundos, com pausa e avanço](docs/intro.pt-BR.mp4).** Acompanhe uma cédula do recibo até a conferência. Animação ilustrativa com legendas na imagem, sem áudio; `R7` é um código simbólico, não um recibo real.
 
-## Três passos
+## Quem faz o quê
 
-1. **Votar.** A urna cifra a escolha e imprime o recibo primeiro. `CONFIRM` guarda a abertura e registra a cédula. `TEST` abre a cédula, anula esse voto e deixa você votar de novo.
-2. **Publicar.** Encerrada a votação, cada urna registrada assina um único lote completo e envia ao mural em Solidity. Na demo, o mural roda num nó Anvil local.
-3. **Conferir.** Três de cinco trustees publicam as partes da descriptografia do total auditado. O verificador em Python confere manifesto, assinaturas, provas das cédulas, recibos, provas dos trustees e a apuração. Cédula anulada fica de fora.
+1. **Urna offline: cifra e emite o recibo.** O recibo sai antes da decisão. `CONFIRM` mantém a cédula cifrada e registra o voto. `TEST` abre a cédula para conferir a escolha, anula essa cédula e exige um novo voto.
+2. **Blockchain: registra os lotes assinados.** Depois do encerramento, cada urna envia seu lote em uma transação. O contrato Solidity confere a assinatura e aceita um único lote por urna registrada, dentro do prazo. As provas dos votos são conferidas fora do contrato. Na demo, a blockchain é um nó Anvil local.
+3. **Guardiões: abrem a soma.** Três de cinco participantes que guardam partes da chave publicam suas contribuições para decifrar o total auditado. O fluxo não publica a abertura dos votos confirmados.
+4. **Verificador independente: confere recibos e resultado.** Com os arquivos públicos e o seu recibo, ele verifica inclusão, assinaturas, provas e apuração. Se um recibo fornecido estiver ausente, a conferência acusa; cédulas de teste não entram na contagem.
 
-## Veja funcionando
+**O que muda?** O Boletim de Urna brasileiro permite comparar os totais da seção com os publicados pelo TSE. Ele não é um recibo individual da cédula. A proposta acrescenta a conferência por recibo e as provas verificáveis da apuração. [Contexto e fontes oficiais](docs/media.md#brazilian-system-context).
+
+## Execução real no terminal
 
 ![Eleição real da demo: votar, testar, publicar e conferir](docs/demo.pt-BR.gif)
 

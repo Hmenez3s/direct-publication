@@ -2,9 +2,36 @@
 
 ## Opening / Abertura
 
-[`intro.svg`](intro.svg) and [`intro.pt-BR.svg`](intro.pt-BR.svg) are animated, self-contained vector explainers, not recordings of an election. Open either in a browser. No build, JavaScript, external fonts, or downloaded artwork is needed. A reduced-motion view retains the final explanation.
+**[Português: vídeo de 56 segundos](intro.pt-BR.mp4) · [English: 56-second video](intro.mp4)**
 
-The opening illustrates the difference between checking polling-station totals and checking inclusion with an individual ballot receipt. It does not claim that Brazil lacks election auditing, or that Urna Aberta eliminates every trust assumption. See the README's limits and [`threat-model.md`](threat-model.md).
+The opening follows one symbolic receipt, `R7`, through the system. It separates the offline machine, signed batch transaction, blockchain contract, threshold trustees and independent verifier. The video has on-screen captions and no audio. Open the MP4 in a video player to pause, replay or seek; the README uses a still poster rather than requiring readers to follow an autoplay loop.
+
+Os sete trechos mostram: o mapa do sistema; a emissão do recibo; a decisão entre confirmar e testar; a publicação do lote na blockchain; a contribuição de três guardiões; a conferência pelo eleitor; e um resumo das responsabilidades. `R7` é apenas um código simbólico para acompanhar o exemplo, não uma prova criptográfica ou recibo real. A explicação é ilustrativa. A gravação de terminal abaixo é a execução real.
+
+[`intro.svg`](intro.svg) and [`intro.pt-BR.svg`](intro.pt-BR.svg) remain the authoritative, self-contained artwork and animation sources. The MP4s and PNG posters are generated from those exact SVGs, not maintained as a second presentation. Each scene lasts eight seconds. Essential captions appear at the start and remain readable; reduced-motion mode shows the complete summary. The SVGs need no JavaScript, downloaded artwork or external fonts.
+
+### Reproduce the explanation
+
+With the project's Python environment ready, install Chrome/Chromium and ffmpeg. Then, from the repository root:
+
+```sh
+work="$(mktemp -d -t urna-intro-XXXXXX)"
+uv run python -m demo.render_intro --lang en --output-root "$work/en" --workers 4
+uv run python -m demo.render_intro --lang pt-BR --output-root "$work/pt-BR" --workers 4
+```
+
+The renderer creates its own browser profiles and local frame directories; it does not use your browser session, a web server, Anvil, Docker or an external service. `--output-root` must not exist. Use `--chrome /path/to/browser` if Chrome is not found automatically. The source hash and render settings are retained in `render.json`, alongside the frames and scene screenshots. The two language renders can run concurrently on a machine with sufficient CPU budget; worker counts share that budget.
+
+After checking the generated videos, these commands replace the derived README assets:
+
+```sh
+cp "$work/en/intro.mp4" docs/intro.mp4
+cp "$work/en/poster.png" docs/intro.png
+cp "$work/pt-BR/intro.mp4" docs/intro.pt-BR.mp4
+cp "$work/pt-BR/poster.png" docs/intro.pt-BR.png
+```
+
+The blockchain is shown as the public record of signed batches, not as a replacement for cryptographic proof verification. The demo uses one local Anvil node, not a deployed validator network. The opening does not claim that Brazil lacks auditing or that Urna Aberta eliminates every trust assumption. See [`architecture.md`](architecture.md) and [`threat-model.md`](threat-model.md).
 
 ## Brazilian system context
 

@@ -1,22 +1,25 @@
 # Urna Aberta
 
-**Secret vote. Verifiable receipt. A result you can check.**
+**The machine encrypts. The blockchain records. You verify.**
 
-A new voting system, built as an educational prototype. The machine gives you a receipt that does not reveal your candidate. You check whether your ballot made it into the tally. Anyone can check the public proofs and recompute the result without using the voting machine's software.
+In this educational prototype, you vote on an offline machine and receive a receipt that does not name your candidate. Only after polls close do signed batches go to a blockchain contract. A separate program then checks your receipt and recomputes the tally from the published proofs.
 
 [Português brasileiro](README.pt-BR.md) · [Run the demo](#run-it) · [Paper](paper/main.pdf)
 
-![From polling-station totals to an individual receipt: the Urna Aberta proposal](docs/intro.svg)
+[![Follow one receipt from the offline machine through the blockchain to public verification](docs/intro.png)](docs/intro.mp4)
 
-**What changes?** Brazil's polling-station bulletin lets anyone compare station totals with those published by the TSE. It is not an individual ballot receipt. Urna Aberta explores that receipt-based check, alongside ballot-opening challenges and tally verification. [Context and official sources](docs/media.md#brazilian-system-context).
+**[Watch the 56-second explanation, with pause and seeking](docs/intro.mp4).** Follow a ballot from receipt to verification. An illustrative animation with on-screen captions and no audio; `R7` is a symbolic code, not a real receipt.
 
-## Three steps
+## Who does what
 
-1. **Vote.** The machine encrypts the choice and prints the receipt first. `CONFIRM` keeps the opening secret and casts the ballot. `TEST` opens it, spoils that ballot, and lets you vote again.
-2. **Publish.** After the poll closes, each registered machine signs one complete batch and posts it to the Solidity board. The demo runs the board on a local Anvil node.
-3. **Check.** Three of five trustees publish decryption shares for the audited total. The Python verifier checks the manifest, signatures, ballot proofs, receipts, trustee proofs, and the tally. Spoiled ballots stay out.
+1. **Offline machine: encrypts and issues the receipt.** The receipt comes before the decision. `CONFIRM` keeps the ballot encrypted and casts it. `TEST` opens the ballot to check the choice, voids that ballot, and requires a fresh vote.
+2. **Blockchain: records signed batches.** After polls close, each machine submits its batch as a transaction. The Solidity contract checks the signature and accepts one batch per registered machine within the deadline. Ballot proofs are checked outside the contract. The demo's blockchain is a local Anvil node.
+3. **Trustees: decrypt the sum.** Three of five key-share holders publish contributions to decrypt the audited total. The flow does not publish the openings of confirmed ballots.
+4. **Independent verifier: checks receipts and results.** Using public files and your receipt, it checks inclusion, signatures, proofs, and the tally. A missing supplied receipt fails verification; test ballots do not count.
 
-## See it work
+**What changes?** Brazil's polling-station bulletin lets anyone compare station totals with those published by the TSE. It is not an individual ballot receipt. This proposal adds receipt-based checking and publicly verifiable tally proofs. [Context and official sources](docs/media.md#brazilian-system-context).
+
+## Real execution in the terminal
 
 ![Real demo election: vote, challenge, publish, and verify](docs/demo.gif)
 
