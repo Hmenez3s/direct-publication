@@ -70,6 +70,7 @@ class PreparedScenario:
     board: Contract
     machine_accounts: tuple[LocalAccount, ...]
     dealer: DealerSetup
+    machine: VotingMachine
 
 
 def show_detection(attack: str, fault: str, reason: str) -> None:
@@ -163,6 +164,7 @@ def prepare_scenario(
             board,
             machine_accounts,
             dealer,
+            machine,
         )
 
 
