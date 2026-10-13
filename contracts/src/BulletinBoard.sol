@@ -16,6 +16,7 @@ contract BulletinBoard {
     mapping(address => bool) private _registeredTrustees;
     mapping(address => bool) public batchPosted;
     mapping(uint256 => bool) public partialPosted;
+    mapping(bytes32 => uint256) private _aggregateDigestVotes;
 
     bytes32 public snapshotHash;
     bytes32 public pinnedAggregateDigest;
@@ -129,10 +130,14 @@ contract BulletinBoard {
         if (aggregateDigest == bytes32(0)) revert InvalidAggregateDigest();
         if (payload.length == 0 || payload.length > MAX_PAYLOAD_LENGTH) revert InvalidPayload();
 
-        if (pinnedAggregateDigest == bytes32(0)) pinnedAggregateDigest = aggregateDigest;
-        else if (pinnedAggregateDigest != aggregateDigest) revert InvalidAggregateDigest();
-
+        if (pinnedAggregateDigest != bytes32(0) && pinnedAggregateDigest != aggregateDigest) {
+            revert InvalidAggregateDigest();
+        }
         partialPosted[trusteeIndex] = true;
+        if (pinnedAggregateDigest == bytes32(0)) {
+            uint256 votes = ++_aggregateDigestVotes[aggregateDigest];
+            if (votes == 3) pinnedAggregateDigest = aggregateDigest;
+        }
         emit PartialPosted(trusteeIndex, aggregateDigest, payload, keccak256(payload));
     }
 

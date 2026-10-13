@@ -77,14 +77,22 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError("announced totals must be an integer array")
         verified = audit_board(manifest, evidence, receipts)
         report = verify_election(manifest, evidence, receipts, announced)
-        output: dict[str, Any] = {
-            "report": report.to_dict(),
-            "assumptions": [
-                "offline copied JSON does not prove consensus or finality",
-                "complete honest board export is assumed",
-                "CAST ballots are counted; SPOILED ballots are excluded",
-            ],
-        }
+        assumptions = [
+            "offline copied JSON does not prove consensus or finality",
+            "complete honest board export is assumed",
+            "CAST ballots are counted; SPOILED ballots are excluded",
+        ]
+        if report.rejected_trustees:
+            assumptions.append(
+                "tally verified using the valid three-trustee threshold; "
+                "listed trustee contributions were rejected, not an all-valid transcript"
+            )
+        output: dict[str, Any] = {"report": report.to_dict(), "assumptions": assumptions}
+        if report.rejected_trustees:
+            output["message"] = (
+                "Tally verified using the valid trustee threshold; rejected trustee contributions: "
+                + ", ".join(str(index) for index in report.rejected_trustees)
+            )
         if args.lookup_code is not None:
             code = args.lookup_code
             if (

@@ -169,6 +169,50 @@ def test_invalid_extra_partial_and_announced_false_totals_fail(election):
         verify_election(manifest, evidence, receipts, (0, 2))
 
 
+def test_invalid_trustee_contributions_are_excluded_but_reported(election):
+    _, dealer, manifest, receipts, evidence, _ = election
+    verified = audit_board(manifest, evidence, receipts)
+    all_partials = tuple(
+        make_partial(manifest, verified.aggregate, share) for share in dealer.shares
+    )
+    events = []
+    for partial in all_partials:
+        payload = partial.to_bytes()
+        event_digest = aggregate_digest(verified.aggregate)
+        if partial.trustee_index == 1:
+            payload = replace(partial, values=(_hex(1), *partial.values[1:])).to_bytes()
+        if partial.trustee_index == 2:
+            event_digest = "11" * 32
+        events.append(
+            PartialEvent(
+                partial.trustee_index,
+                event_digest,
+                payload.hex(),
+                keccak(payload).hex(),
+            )
+        )
+    report = verify_election(manifest, replace(evidence, partials=tuple(events)), receipts)
+    assert report.totals == (2, 0)
+    assert report.rejected_trustees == (1, 2)
+    with pytest.raises(ValueError, match="three valid trustee partials"):
+        verify_election(manifest, replace(evidence, partials=tuple(events[:4])), receipts)
+
+
+def test_partial_event_integrity_and_identity_remain_fatal(election):
+    _, _, manifest, receipts, evidence, _ = election
+    altered_hash = replace(evidence.partials[0], payload_hash="ff" * 32)
+    with pytest.raises(ValueError, match="payload hash"):
+        verify_election(
+            manifest, replace(evidence, partials=(altered_hash, *evidence.partials[1:])), receipts
+        )
+    with pytest.raises(ValueError, match="duplicate trustee partial event"):
+        verify_election(
+            manifest,
+            replace(evidence, partials=(*evidence.partials, evidence.partials[0])),
+            receipts,
+        )
+
+
 def test_public_api_accepts_zero_pin_for_first_partial_and_rejects_wrong_pin(election):
     _, dealer, manifest, receipts, evidence, _ = election
     unpinned = replace(evidence, pinned_aggregate_digest="00" * 32, partials=())
@@ -280,7 +324,7 @@ def test_public_api_rejects_open_board_and_wrong_share(election):
 
 
 def test_cli_pretty_inputs_duplicate_keys_and_exclusive_output(election):
-    tmp_path, _, manifest, receipts, evidence, _ = election
+    tmp_path, dealer, manifest, receipts, evidence, _ = election
     manifest_path, evidence_path = tmp_path / "manifest.json", tmp_path / "evidence.json"
     receipts_path, totals_path = tmp_path / "receipts.json", tmp_path / "totals.json"
     manifest_path.write_text(json.dumps({"manifest": manifest.to_dict()}, indent=2) + "\n")
@@ -317,6 +361,39 @@ def test_cli_pretty_inputs_duplicate_keys_and_exclusive_output(election):
     assert report["report"]["totals"] == [2, 0]
     assert report["lookup"]["status"] == "SPOILED"
     assert report["lookup"]["counted"] is False
+    audited = audit_board(manifest, evidence, receipts)
+    rejected_events = []
+    for share in dealer.shares:
+        partial = make_partial(manifest, audited.aggregate, share)
+        payload = partial.to_bytes()
+        event_digest = aggregate_digest(audited.aggregate)
+        if partial.trustee_index == 1:
+            payload = replace(partial, values=(_hex(1), *partial.values[1:])).to_bytes()
+        if partial.trustee_index == 2:
+            event_digest = "11" * 32
+        rejected_events.append(
+            PartialEvent(
+                partial.trustee_index,
+                event_digest,
+                payload.hex(),
+                keccak(payload).hex(),
+            )
+        )
+    excluded_evidence = replace(evidence, partials=tuple(rejected_events))
+    excluded_path = tmp_path / "excluded-evidence.json"
+    excluded_path.write_text(json.dumps(excluded_evidence.to_dict()))
+    excluded_output = tmp_path / "excluded-report.json"
+    excluded_command = command.copy()
+    excluded_command[excluded_command.index(str(evidence_path))] = str(excluded_path)
+    excluded_command[-1] = str(excluded_output)
+    excluded = subprocess.run(
+        excluded_command, cwd=ROOT, env=env, text=True, capture_output=True, check=False
+    )
+    assert excluded.returncode == 0, excluded.stderr
+    excluded_report = json.loads(excluded_output.read_text())
+    assert excluded_report["report"]["rejected_trustees"] == [1, 2]
+    assert "rejected, not an all-valid transcript" in excluded_report["assumptions"][-1]
+    assert "rejected trustee contributions: 1, 2" in excluded_report["message"]
     again = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True, check=False)
     assert again.returncode != 0 and "File exists" in again.stderr
     evidence_path.write_text('{"evidence":{},"evidence":{}}')

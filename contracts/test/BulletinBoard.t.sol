@@ -239,13 +239,15 @@ contract BulletinBoardTest {
             abi.decode(logs[0].data, (bytes32, bytes, bytes32));
         require(loggedAggregate == aggregate && keccak256(loggedPayload) == keccak256(payload), "partial data");
         require(loggedHash == keccak256(payload), "partial hash");
-        require(board.pinnedAggregateDigest() == aggregate, "pin");
+        require(board.pinnedAggregateDigest() == bytes32(0), "one post does not pin");
         require(board.partialPosted(3), "partial flag");
 
         vm.prank(trustees[0]);
         board.postPartial(snapshot, aggregate, hex"dd");
+        require(board.pinnedAggregateDigest() == bytes32(0), "two posts do not pin");
         vm.prank(trustees[4]);
         board.postPartial(snapshot, aggregate, hex"ee");
+        require(board.pinnedAggregateDigest() == aggregate, "third matching post pins");
         require(board.partialPosted(1) && board.partialPosted(5), "multi trustee postings");
     }
 
@@ -271,9 +273,46 @@ contract BulletinBoardTest {
         vm.expectRevert(BulletinBoard.PartialAlreadyPosted.selector);
         board.postPartial(snapshot, aggregate, hex"01");
         vm.prank(trustees[1]);
-        vm.expectRevert(BulletinBoard.InvalidAggregateDigest.selector);
         board.postPartial(snapshot, keccak256("different"), hex"01");
-        require(!board.partialPosted(2), "failed pin did not consume trustee");
+        require(board.pinnedAggregateDigest() == bytes32(0), "different first digests do not pin");
+        require(board.partialPosted(2), "different digest vote recorded");
+        vm.prank(trustees[2]);
+        board.postPartial(snapshot, aggregate, hex"02");
+        vm.prank(trustees[3]);
+        board.postPartial(snapshot, aggregate, hex"03");
+        vm.prank(trustees[4]);
+        board.postPartial(snapshot, aggregate, hex"04");
+        require(board.pinnedAggregateDigest() == aggregate, "three matching posts pin");
+    }
+
+    function testPinnedDigestRejectsLaterMismatch() public {
+        vm.warp(BATCH_DEADLINE + 1);
+        bytes32 snapshot = board.snapshotHash();
+        bytes32 honest = keccak256("honest aggregate");
+        for (uint256 i; i < 3; ++i) {
+            vm.prank(trustees[i]);
+            board.postPartial(snapshot, honest, hex"01");
+        }
+        vm.prank(trustees[3]);
+        vm.expectRevert(BulletinBoard.InvalidAggregateDigest.selector);
+        board.postPartial(snapshot, keccak256("different"), hex"02");
+        require(!board.partialPosted(4), "mismatch does not consume trustee");
+    }
+
+    function testTwoWrongEarlyDigestsCannotBlockHonestQuorum() public {
+        vm.warp(BATCH_DEADLINE + 1);
+        bytes32 snapshot = board.snapshotHash();
+        bytes32 honest = keccak256("honest aggregate");
+        vm.prank(trustees[0]);
+        board.postPartial(snapshot, keccak256("wrong one"), hex"01");
+        vm.prank(trustees[1]);
+        board.postPartial(snapshot, keccak256("wrong two"), hex"02");
+        require(board.pinnedAggregateDigest() == bytes32(0), "early votes cannot pin");
+        for (uint256 i = 2; i < 5; ++i) {
+            vm.prank(trustees[i]);
+            board.postPartial(snapshot, honest, hex"03");
+        }
+        require(board.pinnedAggregateDigest() == honest, "honest quorum pins");
     }
 
     function testPartialDeadlineUpperBound() public {

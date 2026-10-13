@@ -104,7 +104,17 @@ def test_verification_report_receipt_map_round_trips_as_a_wire_object() -> None:
     )
     wire = report.to_dict()
     assert wire["receipt_results"] == {"1" * 64: "CAST"}
+    assert wire["rejected_trustees"] == []
     assert VerificationReport.from_bytes(report.to_bytes()) == report
+    legacy_wire = dict(wire)
+    legacy_wire.pop("rejected_trustees")
+    assert VerificationReport.from_dict(legacy_wire) == report
+    with_exclusions = VerificationReport.from_dict({**wire, "rejected_trustees": [1, 4]})
+    assert with_exclusions.rejected_trustees == (1, 4)
+    assert VerificationReport.from_bytes(with_exclusions.to_bytes()) == with_exclusions
+    for invalid in ([2, 1], [1, 1], [0], [6], [1, 2, 3], [True]):
+        with pytest.raises(ValueError, match="rejected_trustees"):
+            VerificationReport.from_dict({**wire, "rejected_trustees": invalid})
 
 
 def test_aggregate_digest_has_a_separate_domain() -> None:

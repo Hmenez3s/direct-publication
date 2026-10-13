@@ -182,42 +182,43 @@ def verify_election(
     digest = aggregate_digest(verified.aggregate)
     if evidence.pinned_aggregate_digest != digest:
         raise ValueError("board pinned aggregate digest mismatch")
-    supplied = []
+    supplied: list[PartialDecryption] = []
     partial_indices: set[int] = set()
+    rejected: set[int] = set()
     for event in evidence.partials:
-        try:
-            raw = bytes.fromhex(event.payload_hex)
-            partial = PartialDecryption.from_bytes(raw)
-        except (TypeError, ValueError) as exc:
-            raise ValueError("partial event payload is invalid") from exc
-        if partial.to_bytes() != raw:
-            raise ValueError("partial payload bytes are not canonical")
-        if keccak(raw).hex() != event.payload_hash:
-            raise ValueError("partial payload hash mismatch")
-        if event.aggregate_digest != digest or partial.aggregate_digest != digest:
-            raise ValueError("partial aggregate digest mismatch")
-        if event.trustee_index != partial.trustee_index:
-            raise ValueError("partial event trustee ordinal does not match payload")
         if not 1 <= event.trustee_index <= 5:
             raise ValueError("partial trustee ordinal is unregistered")
         if event.trustee_index in partial_indices:
             raise ValueError("duplicate trustee partial event")
         partial_indices.add(event.trustee_index)
+        try:
+            raw = bytes.fromhex(event.payload_hex)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("partial event payload encoding is invalid") from exc
+        if keccak(raw).hex() != event.payload_hash:
+            raise ValueError("partial payload hash mismatch")
+        try:
+            partial = PartialDecryption.from_bytes(raw)
+            if partial.to_bytes() != raw:
+                raise ValueError("partial payload bytes are not canonical")
+        except (TypeError, ValueError):
+            rejected.add(event.trustee_index)
+            continue
+        if (
+            event.aggregate_digest != digest
+            or partial.aggregate_digest != digest
+            or event.trustee_index != partial.trustee_index
+        ):
+            rejected.add(event.trustee_index)
+            continue
+        try:
+            verify_partial(manifest, verified.aggregate, partial)
+        except (TypeError, ValueError):
+            rejected.add(event.trustee_index)
+            continue
         supplied.append(partial)
     if len(supplied) < 3:
-        raise ValueError("at least three trustee partials are required")
-    seen: set[int] = set()
-    for partial in supplied:
-        if not isinstance(partial, PartialDecryption):
-            raise ValueError("invalid partial record")
-        if partial.trustee_index in seen:
-            raise ValueError("duplicate trustee partial")
-        seen.add(partial.trustee_index)
-        if not 1 <= partial.trustee_index <= 5:
-            raise ValueError("unregistered trustee partial")
-        verify_partial(manifest, verified.aggregate, partial)
-    if len(seen) < 3:
-        raise ValueError("at least three distinct registered trustees are required")
+        raise ValueError("at least three valid trustee partials are required")
     totals = decrypt_tally(manifest, verified.aggregate, supplied)
     if announced_totals is not None:
         if any(type(value) is not int for value in announced_totals):
@@ -238,4 +239,5 @@ def verify_election(
         len(verified.spoiled_commitments),
         totals,
         tuple(sorted(lookup.items())),
+        tuple(sorted(rejected)),
     )

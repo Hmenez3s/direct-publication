@@ -18,6 +18,7 @@ from demo.chain import (
     post_partial,
     read_evidence,
 )
+from trustees.api import partial_for_final_tally
 from trustees.dealer import create_dealer
 from trustees.threshold import make_partial, verify_partial
 from urna.crypto import encrypt
@@ -38,6 +39,7 @@ from urna.signing import (
     verify_batch_signature,
     verify_receipt_signature,
 )
+from verifier.audit import audit_board, verify_election
 
 VECTOR_KEY = bytes.fromhex("00" * 31 + "02")
 VECTOR_ELECTION = "11" * 32
@@ -280,13 +282,23 @@ def test_integration_deploy_post_evidence_and_partial_pin(integration_chain) -> 
         cast_count=0,
         ciphertexts=(encrypt(manifest.public_key, 0, 1), encrypt(manifest.public_key, 0, 1)),
     )
-    partial = make_partial(manifest, aggregate, dealer.shares[0])
-    verify_partial(manifest, aggregate, partial)
+    partials = tuple(make_partial(manifest, aggregate, share) for share in dealer.shares[:3])
+    for partial in partials:
+        verify_partial(manifest, aggregate, partial)
     advance_time(chain, manifest.batch_deadline + 1)
     digest = aggregate_digest(aggregate)
-    post_partial(
-        chain, board, chain.accounts[2], _web3_hex(first_snapshot), digest, partial.to_bytes()
-    )
+    for offset, partial in enumerate(partials):
+        post_partial(
+            chain,
+            board,
+            chain.accounts[offset + 2],
+            _web3_hex(first_snapshot),
+            digest,
+            partial.to_bytes(),
+        )
+        assert _web3_hex(board.functions.pinnedAggregateDigest().call()) == (
+            digest if offset == 2 else "00" * 32
+        )
     evidence = read_evidence(chain, board, manifest)
     assert evidence.batches[0].payload_hex == payload.hex()
     assert evidence.batches[0].signature == signature
@@ -359,10 +371,43 @@ def test_integration_partial_rejects_rogue_stale_snapshot_and_wrong_pin(integrat
         board.functions.postPartial(snapshot, bytes.fromhex("cd" * 32), b"duplicate").transact(
             {"from": chain.accounts[2].address}
         )
+    assert _web3_hex(board.functions.pinnedAggregateDigest().call()) == "00" * 32
+    for account in chain.accounts[3:5]:
+        post_partial(chain, board, account, _web3_hex(snapshot), "cd" * 32, b"matching")
+    assert _web3_hex(board.functions.pinnedAggregateDigest().call()) == "cd" * 32
     with pytest.raises((ContractLogicError, Web3RPCError)):
         board.functions.postPartial(snapshot, bytes.fromhex("ef" * 32), b"wrong-pin").transact(
-            {"from": chain.accounts[3].address}
+            {"from": chain.accounts[5].address}
         )
+
+
+def test_integration_two_wrong_first_digests_leave_honest_tally_available(integration_chain):
+    chain = integration_chain
+    dealer, machines, _, manifest, board, payload = _integration_setup(chain)
+    signature = sign_batch(
+        chain.chain_id, manifest.board_address, manifest.election_id, payload, machines[0].key
+    )
+    post_batch(chain, board, machines[0], payload, signature)
+    advance_time(chain, manifest.batch_deadline + 1)
+    evidence = read_evidence(chain, board, manifest)
+    digest = aggregate_digest(audit_board(manifest, evidence).aggregate)
+    for share in dealer.shares:
+        partial = partial_for_final_tally(manifest, evidence, share)
+        submitted_digest = ("11" if share.index == 1 else "22") * 32 if share.index <= 2 else digest
+        post_partial(
+            chain,
+            board,
+            chain.accounts[share.index + 1],
+            evidence.snapshot_hash,
+            submitted_digest,
+            partial.to_bytes(),
+        )
+        evidence = read_evidence(chain, board, manifest)
+        assert evidence.pinned_aggregate_digest == (digest if share.index == 5 else "00" * 32)
+    report = verify_election(manifest, evidence)
+    assert report.totals == (0, 0)
+    assert report.rejected_trustees == (1, 2)
+    assert report.cast_count == 0
 
 
 def _web3_hex(value: bytes) -> str:

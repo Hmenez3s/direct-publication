@@ -128,6 +128,7 @@ def _preflight(cls: type[WireRecord], data: dict[str, Any]) -> None:
         "randomness": MAX_CANDIDATES,
         "totals": MAX_CANDIDATES,
         "receipt_results": MAX_MACHINES * MAX_BALLOTS_PER_MACHINE,
+        "rejected_trustees": 2,
     }
     for key, limit in limits.items():
         if key not in data:
@@ -495,7 +496,8 @@ class VerificationReport(WireRecord):
     spoiled_count: int
     totals: tuple[int, ...]
     receipt_results: tuple[tuple[str, str], ...]
-    TUPLES: ClassVar = frozenset({"totals"})
+    rejected_trustees: tuple[int, ...] = ()
+    TUPLES: ClassVar = frozenset({"totals", "rejected_trustees"})
 
     def __post_init__(self) -> None:
         _hash(self.election_id, "election_id")
@@ -517,6 +519,12 @@ class VerificationReport(WireRecord):
             if commitment in seen or result not in {"CAST", "SPOILED"}:
                 raise ValueError("receipt results must be unique CAST or SPOILED entries")
             seen.add(commitment)
+        _tuple(self.rejected_trustees, "rejected_trustees", 2)
+        if (
+            any(type(index) is not int or not 1 <= index <= 5 for index in self.rejected_trustees)
+            or tuple(sorted(set(self.rejected_trustees))) != self.rejected_trustees
+        ):
+            raise ValueError("rejected_trustees must be sorted unique indices in 1..5")
 
     def to_dict(self) -> dict[str, Any]:
         data = WireRecord.to_dict(self)
@@ -526,6 +534,8 @@ class VerificationReport(WireRecord):
     @classmethod
     def from_dict(cls, data: Any) -> Self:
         if isinstance(data, dict):
+            if "rejected_trustees" not in data:
+                data = {**data, "rejected_trustees": []}
             if not isinstance(data.get("receipt_results"), dict):
                 raise ValueError("receipt_results must be an object")
             if len(data["receipt_results"]) > MAX_MACHINES * MAX_BALLOTS_PER_MACHINE:

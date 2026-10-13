@@ -34,8 +34,8 @@ from urna.schema import BatchPayload, Receipt, TrusteePublic, aggregate_digest
 from urna.transport import PhysicalSwitchSimulator, ScratchReinstall, export_carrier
 from verifier.audit import audit_board
 
-APPROVED_CORE_SHA256 = "d8dc11ccadbf5ad9ad9525e4e10d8248821dbfe1b515aaa2ba184d67fb216dcd"
-APPROVED_CORE_BYTES = 793932
+APPROVED_CORE_SHA256 = "fcb532e75745b5a884fcd264e32018eca8016df2784491bc691ea3cb82993ce4"
+APPROVED_CORE_BYTES = 795620
 CORE_FILES = (
     "pyproject.toml",
     "uv.lock",
@@ -275,11 +275,9 @@ def run_demo(output_root: str | Path, screen: Screen | None = None) -> dict[str,
             verified = audit_board(manifest, evidence, all_receipts)
             digest = aggregate_digest(verified.aggregate)
             for share in dealer.shares[:3]:
-                expected_pin = "0" * 64 if share.index == 1 else digest
+                expected_pin = "0" * 64
                 if evidence.pinned_aggregate_digest != expected_pin:
-                    raise RuntimeError(
-                        "trustee pin does not match first-zero/subsequent-digest policy"
-                    )
+                    raise RuntimeError("trustee pin became visible before three matching posts")
                 partial = partial_for_final_tally(manifest, evidence, share, all_receipts)
                 current = read_evidence(chain, board, manifest)
                 if current.pinned_aggregate_digest != expected_pin:
@@ -303,6 +301,11 @@ def run_demo(output_root: str | Path, screen: Screen | None = None) -> dict[str,
                     }
                 )
                 evidence = read_evidence(chain, board, manifest)
+                expected_pin = digest if share.index == 3 else "0" * 64
+                if evidence.pinned_aggregate_digest != expected_pin:
+                    raise RuntimeError(
+                        "trustee pin does not match three-matching-post quorum progression"
+                    )
                 screen.partial(share.index)
         public_receipts = [receipt.to_dict() for receipt in all_receipts]
         manifest_dict = manifest.to_dict()
