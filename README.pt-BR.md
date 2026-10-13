@@ -1,10 +1,10 @@
-# Urna Aberta
+# Direct Publication
 
 **A urna cifra. A blockchain registra. Você confere.**
 
-Neste protótipo educacional, você vota numa urna offline e recebe um recibo sem o nome do candidato. Só no encerramento a urna fica online e envia o lote assinado direto ao contrato na blockchain. Nenhum intermediário recebe ou altera esses votos: o contrato só aceita o lote assinado pela própria urna. Depois, um programa independente confere seu recibo e recalcula a apuração com as provas publicadas.
+Neste estudo, a urna fica offline enquanto você vota e entrega um recibo sem o nome do candidato. Só no encerramento ela fica online e envia o lote assinado direto ao contrato. Nenhum intermediário recebe ou altera esses votos. Três de cinco guardiões abrem só a soma cifrada, e um programa separado confere o recibo e refaz a apuração.
 
-[English](README.md) · [Rodar a demo](#rodar) · [Artigo](paper/main.pdf)
+[English](README.md) · [Rodar a demo](#rodar) · [Estudo](#estudo)
 
 [![Como um recibo liga a urna offline à blockchain e à conferência pública](docs/intro.pt-BR.gif)](docs/intro.pt-BR.mp4)
 
@@ -84,8 +84,8 @@ Um banco replicado também guardaria esses bytes. A blockchain deixa a regra de 
 
 O desenho e o limite de confiança estão em [`docs/architecture.md`](docs/architecture.md) e [`docs/threat-model.md`](docs/threat-model.md).
 
-## Artigo
+## Estudo
 
-O artigo registra o protocolo, os oito ataques e as medições: [`paper/main.pdf`](paper/main.pdf). Fontes em [`paper/main.tex`](paper/main.tex), [`paper/refs.bib`](paper/refs.bib) e [`paper/figures/evaluation.py`](paper/figures/evaluation.py). Com Tectonic 0.17.0 instalado, `uv sync --locked` e `make paper` recompilam o PDF. A classe LNCS e o estilo bibliográfico estão no repositório. Autoria coletiva. É um manuscrito educacional, não uma publicação revisada por pares.
+João Henrique Menezes Silva Boia, *Direct Publication for Offline Ballots: A Smaller Tally Path with Fewer Parties* (outubro de 2026). O preprint está em [`paper/main.pdf`](paper/main.pdf).
 
-Metadados de citação: [`CITATION.cff`](CITATION.cff). *Urna Aberta contributors. Urna Aberta: An Offline Ballot Protocol with Publicly Checkable Evidence.*
+É um estudo independente, não um artigo de periódico. O identificador do arXiv entra em [`CITATION.cff`](CITATION.cff) quando o preprint for enviado. `make paper` recompila o PDF com Tectonic 0.17.0 a partir de [`paper/main.tex`](paper/main.tex), [`paper/refs.bib`](paper/refs.bib) e [`paper/figures/evaluation.py`](paper/figures/evaluation.py).

@@ -1,6 +1,6 @@
 # Security policy
 
-Urna Aberta is an educational research prototype, not an election system for real voters or production use. See [`docs/threat-model.md`](docs/threat-model.md) for explicit assumptions and limitations. Do not submit real voter data, private keys, production credentials or sensitive election material.
+This repository is a study and a local implementation, not an election system for real voters or production use. See [`docs/threat-model.md`](docs/threat-model.md) for explicit assumptions and limitations. Do not submit real voter data, private keys, production credentials or sensitive election material.
 
 ## Reporting a vulnerability
 

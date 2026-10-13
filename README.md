@@ -1,10 +1,10 @@
-# Urna Aberta
+# Direct Publication
 
-**The machine encrypts. The blockchain records. You verify.**
+**The machine encrypts. The chain records. You verify.**
 
-In this educational prototype, you vote on an offline machine and receive a receipt that does not name your candidate. Only after polls close does the machine go online and send its signed batch straight to the blockchain contract. No intermediary receives or changes the votes: the contract accepts only the batch signed by that machine. A separate program then checks your receipt and recomputes the tally from the published proofs.
+This study keeps the machine offline while you vote. You receive a receipt that does not name your candidate. Only after the close does the machine go online and send its signed batch straight to the contract. No intermediary receives or changes the votes. Three of five trustees open only the encrypted sum, and a separate program checks your receipt and recomputes the tally.
 
-[Português brasileiro](README.pt-BR.md) · [Run the demo](#run-it) · [Paper](paper/main.pdf)
+[Português brasileiro](README.pt-BR.md) · [Run the demo](#run-it) · [Study](#study)
 
 [![Follow one receipt from the offline machine through the blockchain to public verification](docs/intro.gif)](docs/intro.mp4)
 
@@ -84,8 +84,8 @@ A replicated database can store the same bytes. The chain makes the inclusion ru
 
 The design and the trust boundary are in [`docs/architecture.md`](docs/architecture.md) and [`docs/threat-model.md`](docs/threat-model.md).
 
-## Paper
+## Study
 
-The paper records the protocol, the eight attacks, and the measurements: [`paper/main.pdf`](paper/main.pdf). Sources: [`paper/main.tex`](paper/main.tex), [`paper/refs.bib`](paper/refs.bib), and [`paper/figures/evaluation.py`](paper/figures/evaluation.py). With Tectonic 0.17.0 installed, `uv sync --locked` and `make paper` rebuild the PDF. The LNCS class and bibliography style are in the repository. Collective authorship. This is an educational manuscript, not a peer-reviewed publication.
+João Henrique Menezes Silva Boia, *Direct Publication for Offline Ballots: A Smaller Tally Path with Fewer Parties* (October 2026). The preprint is [`paper/main.pdf`](paper/main.pdf).
 
-Citation metadata: [`CITATION.cff`](CITATION.cff). *Urna Aberta contributors. Urna Aberta: An Offline Ballot Protocol with Publicly Checkable Evidence.*
+It is an independent study, not a journal article. An arXiv identifier will be added to [`CITATION.cff`](CITATION.cff) when the preprint is posted. `make paper` rebuilds the PDF with Tectonic 0.17.0 from [`paper/main.tex`](paper/main.tex), [`paper/refs.bib`](paper/refs.bib), and [`paper/figures/evaluation.py`](paper/figures/evaluation.py).

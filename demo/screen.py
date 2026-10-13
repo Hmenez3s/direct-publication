@@ -14,7 +14,7 @@ from rich.text import Text
 
 TEXT: dict[str, dict[str, str]] = {
     "en": {
-        "subtitle": "an educational election, live on this computer",
+        "subtitle": "a local election, live on this computer",
         "software": "simulated machine image matches the approved source release",
         "key": "election key split among 5 trustees; 3 are needed to open the result",
         "board": "public board deployed on a local blockchain",
@@ -48,7 +48,7 @@ TEXT: dict[str, dict[str, str]] = {
         "and": "and",
     },
     "pt-BR": {
-        "subtitle": "uma eleição educacional, ao vivo neste computador",
+        "subtitle": "uma eleição local, ao vivo neste computador",
         "software": "imagem simulada da urna confere com o código aprovado",
         "key": "chave da eleição dividida entre 5 guardiões; 3 abrem o resultado",
         "board": "mural público criado numa blockchain local",
@@ -120,7 +120,7 @@ class Screen:
     def title(self) -> None:
         self.console.print()
         self.console.print(
-            Text.assemble((" URNA ABERTA ", "bold black on green"), "  ", self.text["subtitle"])
+            Text.assemble((" DIRECT PUBLICATION ", "bold black on green"), "  ", self.text["subtitle"])
         )
         self.console.print()
 

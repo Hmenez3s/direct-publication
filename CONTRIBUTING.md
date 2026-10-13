@@ -1,6 +1,6 @@
 # Contributing
 
-Contributions to this educational prototype are welcome. Please keep protocol and wire-format changes consistent with [`docs/interfaces.md`](docs/interfaces.md), preserve explicit security limitations, and avoid claims of production readiness, novelty, privacy or trust-free operation that the evidence does not support. Use synthetic fixtures only; never add real voter data, production keys or secrets.
+Contributions to this study and its implementation are welcome. Please keep protocol and wire-format changes consistent with [`docs/interfaces.md`](docs/interfaces.md), preserve explicit security limitations, and avoid claims of production readiness, novelty, privacy or trust-free operation that the evidence does not support. Use synthetic fixtures only; never add real voter data, production keys or secrets.
 
 ## Development setup
 
@@ -30,4 +30,4 @@ Before opening a contribution, review the relevant documentation and run the foc
 
 ## Licensing and attribution
 
-By intentionally submitting a contribution for inclusion, you agree that it is offered under Apache License 2.0, subject to that license and any separate agreement. See [`LICENSE`](LICENSE). The collective project attribution is `Urna Aberta contributors`; do not add individual authors, contact details, repository URLs or persistent identifiers without verified authorization.
+By intentionally submitting a contribution for inclusion, you agree that it is offered under Apache License 2.0, subject to that license and any separate agreement. See [`LICENSE`](LICENSE). The study is authored by João Henrique Menezes Silva Boia. Do not add other personal names, contact details, repository URLs, or persistent identifiers without verified authorization.

@@ -1,13 +1,17 @@
 cff-version: 1.2.0
 message: >-
-  If you use this educational research prototype, please cite it as software
-  and consult the repository for paper availability.
-title: Urna Aberta
-version: 0.1.0
+  Cite this preprint. Add the arXiv identifier here when the preprint is
+  posted.
+title: >-
+  Direct Publication for Offline Ballots: A Smaller Tally Path with Fewer
+  Parties
 authors:
-  - name: Urna Aberta contributors
+  - family-names: Menezes Silva Boia
+    given-names: João Henrique
 license: Apache-2.0
 type: software
 abstract: >-
-  Educational research prototype exploring offline ballot generation,
-  signed public bulletin-board publication, and independent verification.
+  A study of offline ballots published directly by the machine, opened by a
+  three-of-five threshold over the encrypted sum, and checked by a separate
+  verifier.
+date-released: 2026-10-13

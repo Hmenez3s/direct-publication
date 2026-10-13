@@ -2,7 +2,7 @@
 
 ## Purpose and security posture
 
-This document describes what the educational prototype attempts to detect and what it trusts. The tagline “Voting machines that prove their own result, without trusting anyone” is a vision, not a literal trust-free claim. No production, national-election, legal-compliance, privacy, or formal-security guarantee is made.
+This document describes what the implementation attempts to detect and what it trusts. The tagline “Voting machines that prove their own result, without trusting anyone” is a vision, not a literal trust-free claim. No production, national-election, legal-compliance, privacy, or formal-security guarantee is made.
 
 The workflow aims to make ballot validity, machine batch signatures, receipt inclusion, trustee partial decryptions and the computed tally independently checkable from supplied evidence. It does not eliminate trusted setup, device trust, coercion, incomplete evidence, consensus risk or operational attacks.
 

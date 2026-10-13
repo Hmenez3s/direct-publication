@@ -72,7 +72,7 @@ def make_plot(source: Path, destination: Path) -> None:
     ax.set_xscale("log")
     ax.set_xlim(0.1, 90)
     ax.set_xlabel("Elapsed seconds, log scale (median; min-to-max range, n=3)")
-    ax.set_title("Recorded prototype timings on the supplied run")
+    ax.set_title("Recorded operation times on the supplied run")
     ax.grid(axis="x", color="#DDE3E3", linewidth=0.7, zorder=0)
     ax.spines[["top", "right", "left"]].set_visible(False)
     ax.tick_params(axis="y", length=0)
@@ -86,7 +86,7 @@ def make_plot(source: Path, destination: Path) -> None:
             fontsize=8,
         )
     destination.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(destination, format="pdf", metadata={"Title": "Recorded prototype timings"})
+    fig.savefig(destination, format="pdf", metadata={"Title": "Recorded operation times"})
     plt.close(fig)
 
 

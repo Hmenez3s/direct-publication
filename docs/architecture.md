@@ -1,6 +1,6 @@
 # Architecture
 
-Urna Aberta is an educational, local research prototype with three logical components: an offline voting machine, a Solidity bulletin board, and an independent Python verifier. This document describes implemented interfaces, not a production deployment design.
+The implementation has three logical components: an offline voting machine, a Solidity bulletin board, and an independent Python verifier. This document describes those interfaces. It is not a production deployment design.
 
 ## Components and flow
 
@@ -35,7 +35,7 @@ The offline evidence interface assumes the JSON is an authentic, honest, complet
 
 ## Cryptographic and data boundaries
 
-- The prototype uses RFC 3526 group 14 with `g=2`, Exponential ElGamal, per-candidate ciphertexts, bit proofs, and an exactly-one sum proof. These are educational integrations, not new cryptographic primitives or a formal security proof.
+- The prototype uses RFC 3526 group 14 with `g=2`, Exponential ElGamal, per-candidate ciphertexts, bit proofs, and an exactly-one sum proof. These are integrations of established constructions, not new cryptographic primitives or a formal security proof.
 - Setup uses a trusted dealer for 3-of-5 Shamir shares and coefficient commitments. There is no DKG. Three colluding trustees can decrypt arbitrary ciphertexts. The aggregate-only public API is policy, not cryptographic collusion resistance; the demo process holds all five shares.
 - The verifier counts CAST ballots only and excludes SPOILED openings. Voter receipts help detect an omitted retained ballot, but only receipts supplied to the verifier can be checked. There are no voter credentials or eligibility/turnout reconciliation.
 - The board stores complete batch event payloads and signatures, with a 16 MiB payload ceiling. This is a prototype data-availability path, not a scalable storage design.
