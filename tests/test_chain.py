@@ -307,7 +307,9 @@ def test_integration_deploy_post_evidence_and_partial_pin(integration_chain) -> 
     assert evidence.trustees == tuple(item.address for item in trustees)
     assert evidence.partials[0].trustee_index == 1
     assert evidence.partials[0].aggregate_digest == digest
-    assert evidence.partials[0].payload_hex == partial.to_bytes().hex()
+    assert tuple(event.payload_hex for event in evidence.partials) == tuple(
+        partial.to_bytes().hex() for partial in partials
+    )
 
 
 def test_integration_contract_rejects_tamper_wrong_signer_domain_duplicate_and_rogue(
