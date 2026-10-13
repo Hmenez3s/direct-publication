@@ -224,3 +224,39 @@ def test_worker_captures_native_canvas_without_virtual_resizing(tmp_path, monkey
     with Image.open(tmp_path / "frames/frame-000000.png") as frame:
         assert frame.size == (1000, 600)
     assert process_status == [0]
+
+
+def test_intro_sources_are_one_continuous_story() -> None:
+    import xml.etree.ElementTree as ET
+
+    expected = {
+        "docs/intro.svg": ("Brazil", "offline", "bulletin"),
+        "docs/intro.pt-BR.svg": ("brasileira", "offline", "boletim"),
+    }
+    for name, comparison_terms in expected.items():
+        source = (Path(__file__).resolve().parents[1] / name).read_text(encoding="utf-8")
+        inspect_source(source)
+        assert "pg-dot" not in source and "pg-bar" not in source
+        root = ET.fromstring(source)
+        parent = {child: element for element in root.iter() for child in list(element)}
+        headlines = [
+            "".join(element.itertext())
+            for element in root.iter()
+            if "h" in (element.get("class") or "").split()
+        ]
+        assert len(headlines) == 7
+        assert all(
+            "?" not in line and not line.startswith(("Why ", "Por que")) for line in headlines
+        )
+        assert all(term in source for term in comparison_terms)
+        receipt = next(element for element in root.iter() if element.get("id") == "receipt")
+        while receipt in parent:
+            receipt = parent[receipt]
+            assert not (receipt.get("id") or "").startswith("scene-")
+        for scene in root.iter():
+            if (scene.get("id") or "").startswith("scene-"):
+                # Timing groups may change the words, never hide/reset the visual story.
+                assert all(
+                    element.tag.rsplit("}", 1)[-1] in {"g", "text", "tspan", "title", "desc"}
+                    for element in scene.iter()
+                )
