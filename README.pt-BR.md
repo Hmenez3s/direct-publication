@@ -4,7 +4,7 @@
 
 Essa frase expressa uma visão educacional, não uma garantia literal sem confiança. Este protótipo de pesquisa tem pressupostos explícitos de confiança: manifesto eleitoral e distribuidor central confiáveis, trustees, software da máquina e host, e uma exportação completa e honesta do registro. Ele não prova que um dispositivo ou sistema operacional real executou código aprovado, não impede coerção e não oferece segurança para eleições de produção. Consulte a [arquitetura](docs/architecture.md) e o [modelo de ameaças](docs/threat-model.md).
 
-[![CI configurada](https://img.shields.io/badge/CI-configurada-lightgrey)](.github/workflows/ci.yml) [![Apache 2.0](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-blue)](LICENSE) [![Artigo em preparação](https://img.shields.io/badge/artigo-em%20prepara%C3%A7%C3%A3o-lightgrey)](#artigo)
+[![CI configurada](https://img.shields.io/badge/CI-configurada-lightgrey)](.github/workflows/ci.yml) [![Apache 2.0](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-blue)](LICENSE) [![PDF do artigo](https://img.shields.io/badge/artigo-PDF-2F6B5F)](paper/main.pdf)
 
 A CI está configurada no workflow vinculado; ela não foi executada remotamente. Os badges identificam configuração e licença, não uma compilação remota aprovada nem um artigo publicado.
 
@@ -91,7 +91,7 @@ Os valores de desempenho são medições de um ambiente registrado, não evidên
 ## Artigo
 
 <!-- BEGIN paper -->
-O texto do artigo está sendo preparado. Ainda não há PDF nem link de publicação.
+**PDF do artigo de pesquisa:** [paper/main.pdf](paper/main.pdf) (autoria coletiva; projeto educacional, não uma publicação revisada por pares). Fontes: [LaTeX](paper/main.tex), [bibliografia](paper/refs.bib) e script reproduzível do gráfico [`paper/figures/evaluation.py`](paper/figures/evaluation.py). Instale Tectonic 0.17.0, execute `uv sync --locked` e recompile com `make paper`. A classe LNCS e o estilo bibliográfico estão incluídos.
 <!-- END paper -->
 
-Os metadados de citação estão em [`CITATION.cff`](CITATION.cff). A seção do artigo será atualizada quando ele estiver disponível.
+Os metadados de citação estão em [`CITATION.cff`](CITATION.cff). Citação sugerida: *Urna Aberta contributors. Urna Aberta: An Offline Ballot Protocol with Publicly Checkable Evidence.* Manuscrito de pesquisa, projeto educacional.

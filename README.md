@@ -4,7 +4,7 @@
 
 That line is an educational vision, not a literal trust-free guarantee. This research prototype has explicit trust assumptions: a trusted election manifest and central dealer, trustees, machine software and host, and an honest complete board export. It does not prove that a real device or operating system ran approved code, prevent coercion, or provide production election security. See [architecture](docs/architecture.md) and [threat model](docs/threat-model.md).
 
-[![CI configured](https://img.shields.io/badge/CI-configured-lightgrey)](.github/workflows/ci.yml) [![Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE) [![Paper in preparation](https://img.shields.io/badge/paper-in%20preparation-lightgrey)](#paper)
+[![CI configured](https://img.shields.io/badge/CI-configured-lightgrey)](.github/workflows/ci.yml) [![Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE) [![Paper PDF](https://img.shields.io/badge/paper-PDF-2F6B5F)](paper/main.pdf)
 
 CI is configured in the linked workflow; it has not been remotely executed. Badges identify configuration and license, not a passing remote build or published paper.
 
@@ -91,7 +91,7 @@ Performance values are measurements from one recorded setup, not security eviden
 ## Paper
 
 <!-- BEGIN paper -->
-Paper source is being prepared. No paper PDF or publication link is available yet.
+**Research paper PDF:** [paper/main.pdf](paper/main.pdf) (collective authorship; educational project, not a peer-reviewed publication). Source: [LaTeX](paper/main.tex), [bibliography](paper/refs.bib), and reproducible chart script [`paper/figures/evaluation.py`](paper/figures/evaluation.py). Install Tectonic 0.17.0, run `uv sync --locked`, then rebuild with `make paper`. The LNCS class and bibliography style are bundled.
 <!-- END paper -->
 
-Citation metadata is provided in [`CITATION.cff`](CITATION.cff). The paper section will be updated when the paper is available.
+Citation metadata is provided in [`CITATION.cff`](CITATION.cff). Suggested citation: *Urna Aberta contributors. Urna Aberta: An Offline Ballot Protocol with Publicly Checkable Evidence.* Research manuscript, educational project.

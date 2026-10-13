@@ -73,3 +73,26 @@ measure: build-contract
 		scratch=$$(mktemp -d -t urna-measure-XXXXXX) && uv run python -m demo.measure --output-root "$$scratch/output"; \
 	fi
 # END demo
+
+# BEGIN paper
+.PHONY: paper
+
+paper:
+	@set -eu; \
+	root="$$PWD"; \
+	scratch=$$(mktemp -d -t urna-paper-XXXXXX); \
+	trap 'rm -rf "$$scratch"' EXIT HUP INT TERM; \
+	mkdir -p "$$scratch/paper/figures" "$$scratch/out" "$$scratch/home" "$$scratch/cache" "$$scratch/mpl"; \
+	cp paper/main.tex paper/refs.bib paper/llncs.cls paper/splncs04.bst "$$scratch/paper/"; \
+	cp paper/figures/challenge-probability.pdf "$$scratch/paper/figures/"; \
+	MPLCONFIGDIR="$$scratch/mpl" uv run python paper/figures/evaluation.py --source demo/results/measurements.json --output "$$scratch/paper/figures/evaluation.pdf"; \
+	cd "$$scratch/paper"; \
+	HOME="$$scratch/home" XDG_CACHE_HOME="$$scratch/cache" tectonic --outdir "$$scratch/out" main.tex; \
+	test -s "$$scratch/out/main.pdf"; \
+	cd "$$root"; \
+	python3 -c 'from pathlib import Path; targets=[Path("paper/main.pdf"),Path("paper/figures/evaluation.pdf")]; assert all(not p.is_symlink() and (not p.exists() or (p.is_file() and p.stat().st_nlink == 1)) for p in targets), "refusing linked or non-file generated output"'; \
+	cp "$$scratch/out/main.pdf" "$$scratch/main.pdf"; \
+	cp "$$scratch/paper/figures/evaluation.pdf" "$$scratch/evaluation.pdf"; \
+	mv "$$scratch/main.pdf" paper/main.pdf; \
+	mv "$$scratch/evaluation.pdf" paper/figures/evaluation.pdf
+# END paper
