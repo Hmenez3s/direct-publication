@@ -3,8 +3,7 @@ message: >-
   Cite this preprint. Add the arXiv identifier here when the preprint is
   posted.
 title: >-
-  Direct Publication for Offline Ballots: A Smaller Tally Path with Fewer
-  Parties
+  Direct Publication for Offline Ballots: An Executable Research Prototype
 authors:
   - family-names: Menezes Silva Boia
     given-names: João Henrique

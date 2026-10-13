@@ -18,7 +18,7 @@ METRICS = {
     "full_ballot_generation_including_sum_proof": "Full ballot incl. sum proof",
     "public_ballot_verification": "Public ballot verification",
     "separate_public_verifier_process": "Parallel public verifier process",
-    "full_demo": "Full demo (cold / warm)",
+    "full_demo": "Full demo (fresh processes)",
 }
 
 

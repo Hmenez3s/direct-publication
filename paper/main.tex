@@ -29,7 +29,7 @@
 \begin{center}
 {\LARGE Direct Publication for Offline Ballots\par}
 \vspace{0.55em}
-{\Large A Smaller Tally Path with Fewer Parties\par}
+{\Large An Executable Research Prototype\par}
 \vspace{1.15em}
 {\large Jo\~ao Henrique Menezes Silva Boia\par}
 \vspace{0.35em}
@@ -43,57 +43,53 @@ October 2026
 {\large\scshape Abstract}
 \end{center}
 \begin{quote}
-A tally is easier to dispute when several parties touch a ballot before anyone can check it. This study specifies a shorter path. The machine stays offline while the voter chooses. It prints a receipt that does not name the candidate, and only then does the voter confirm or test. A test opens that ballot and spoils it. A confirmed ballot stays encrypted. After the close, the same machine goes online and sends one signed batch straight to a public contract. No intermediary receives or rewrites the votes. The contract accepts the batch only when the registered machine signed it, and it accepts one batch from that machine. Three of five trustees then open the encrypted sum, not the individual ballots. A separate program checks a supplied receipt and recomputes the tally from the public record. The accompanying implementation exercises eight failures on this path and records a local run: six confirmed ballots, one spoiled ballot, and three timing samples for each measured operation. The design uses established cryptography. It does not claim a new primitive, a national deployment, or the absence of audits in elections that already publish their records.
+This paper specifies a direct-publication protocol for offline encrypted ballots using established cryptographic primitives. It distinguishes the protocol primitives from the investigated publication decision and from implementation findings: the protocol uses ballot proofs, signed batches, and threshold decryption; the design choice is to publish the machine-signed batch directly rather than hand it to an intermediary for forwarding; and the implementation provides eight attack commands alongside focused regression tests and a small historical measurement run. The receipt is issued after candidate selection and before the voter chooses CONFIRM or TEST. A TEST reveals and spoils that ballot; a confirmed ballot remains encrypted. Three of five trustees contribute shares to decrypt the aggregate, while a separate verifier checks supplied receipts and recomputes the tally from public evidence. The run contains six confirmed ballots, one spoiled ballot, and three samples per measured operation. It is not a security proof, deployment evaluation, or new cryptographic primitive, and it does not imply that existing elections lack audits.
 \end{quote}
 
 \section{Introduction}
-An election has to hide each choice and still let an outsider check the total. Those two requirements are not met by a screen that says the vote was counted, or by a file that some office forwards and then announces. Every extra handoff is another place where a ballot can be dropped, edited, or replaced by a total that nobody else can recompute.
+The prototype separates encrypted ballot creation, publication, threshold decryption, and verification. This paper documents those interfaces and executable checks. Signature verification authenticates bytes under a supplied key and domain; it does not establish voter intent, guarantee delivery, or establish the independence of the party supplying the key or verifier.
 
-The path studied here has four roles. The offline machine prepares the encrypted ballot and the receipt. A public contract records the machine's signed batch. Five trustees hold shares of the decryption key, and any three can open the sum. An independent verifier recomputes the result from the published evidence. The machine publishes its own batch. A poll worker may enable the connection after the close, but that person does not receive the votes and does not create a second batch. A fallback copy, if one is used, carries the same signed bytes.
+The path studied here has four roles. The offline machine prepares the encrypted ballot and receipt. A public contract records the machine's signed batch. Five trustees hold shares of the decryption key, and any three can open the sum. An independent verifier recomputes the result from published evidence. The machine publishes its own batch. A poll worker may enable the simulated connection after the close, but that person does not receive the votes. The signature check depends on the signed bytes and trusted verification key, not on how the bytes were transported.
 
-This is a study of that shorter path, together with a local implementation that makes the checks executable. It is not a proposal to replace every existing election procedure, and it is not a claim that current elections have no audits. The concrete difference is who is allowed to handle the ballot bytes. The contract will not take a batch from an unregistered signer, a second batch from the same machine, or a payload whose signature no longer matches. The verifier will not accept a tally that disagrees with the opened sum.
+This is a specification and local integration demonstration, not a proposal to replace existing election procedures. The protocol uses established ballot and threshold-cryptography constructions; the design contribution investigated here is direct publication of a signed batch. The local contract checks registered signers and one-batch rules, and the verifier checks supplied evidence and tally consistency. These are implementation checks, not evidence that the protocol is secure in a deployed election.
 
-The argument for fewer parties is operational. A path fails in more ways when a carrier, a central counter, and the machine can each produce a different story. Removing the carrier removes the step at which signed bytes can be edited in transit. Keeping the opening threshold at three of five means that one trustee cannot announce a private decryption, and that the public result does not depend on all five being present. The cost of that choice is stated later: any three trustees can still decrypt individual ciphertexts, and the local demonstration runs on one chain process controlled by one operator.
+The demo implements publication by the machine account; it does not evaluate institutional arrangements. The machine must be able to reach the board, and the board and its data must remain available. The 3-of-5 interface permits tally decryption with three shares, but any three colluding trustees can also decrypt individual ciphertexts. The local demonstration uses one chain process controlled by one operator.
 
-\section{The shorter path}
+\section{Implementation and evidence}
 \subsection{Roles}
-Table~\ref{tab:roles} compares the path in this study with collection through an intermediary. The right-hand column is a pattern, not a description of one country's election. Brazil already votes offline, prints a polling-station bulletin, gives the voter an attendance acknowledgement, and publishes the digital vote record and other files for audit. The bulletin reports a station total. The acknowledgement records participation. The digital vote record is not a cryptographic receipt held by the voter. Those facts are the baseline. This study does not treat them as missing, and it does not treat a blockchain as the only possible public record.
+Table~\ref{tab:roles} describes the prototype's implemented interfaces, not a comparison with an electoral system. The Brazilian electoral authority documents online publication of BUs, RDV, and logs, a published QR-code format that third parties may implement, and procedures for source-code inspection~\cite{tseAudit}. This citation establishes the documented procedures; it is not an independent audit of their execution.
 
 \begin{table}[ht]
 \centering
-\caption{Who touches the ballot. The right-hand column is a comparison pattern, not one country's election.}
+\caption{Implemented interfaces and the evidence each one handles.}
 \label{tab:roles}
 \small
 \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.16\textwidth}>{\raggedright\arraybackslash}p{0.40\textwidth}>{\raggedright\arraybackslash}p{0.38\textwidth}@{}}
 \toprule
-Step & This study & Through an intermediary \\
+Step & Operation & Evidence or check \\
 \midrule
-Voting & Offline machine & Client, offline or online \\
-Evidence & Receipt before the choice & Participation slip, or none \\
-After close & Machine sends one signed batch & An office receives the file \\
-Acceptance & Contract checks that signature & That office accepts the file \\
-Opening & Three of five open the sum & One office announces the total \\
-Check & A separate program recomputes & Observers read the publication \\
+Ballots & Machine encrypts the selection & Bit and exactly-one proofs \\
+Receipt & Issued after selection, before CONFIRM or TEST & Signed ciphertext commitment \\
+Publication & Machine submits its finalized batch & Domain-bound batch signature \\
+Board & Records one batch per machine & Registry, signature, deadline \\
+Opening & Trustees submit aggregate contributions & Aggregate-bound decryption proofs \\
+Verification & Separate program processes public files & Batch completeness, receipts, proofs, tally \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The conflict this design removes is the one in which the same organization operates the machines, carries the results, and is also the only party that computes the announcement. Here the machine can publish only what it signs. The contract does not open ballots. The trustees contribute shares for the sum. The verifier does not need the machine's program. A person who holds a receipt can ask whether that ballot is in the published batch.
+If exactly the same signed bytes are forwarded by another party, the signature check at the destination is unchanged. This is a property of signature verification, not an experimental comparison or a finding about institutional independence. Publication in this implementation requires the machine-account credential, connectivity, and an accepting board. A receipt holder can check whether the committed ciphertext appears in the supplied evidence; that check alone does not establish voter intent.
 
-What remains is also a conflict, and it should be named. The dealer who creates the key shares is trusted. The demonstration process holds all five shares. Any three trustees can decrypt a ciphertext, so the rule that the public interface opens only the sum is a rule of the software, not a cryptographic barrier against those three. A machine can still encrypt a choice the voter did not make; the test ballot is the check, and it catches only the ballots that are tested. One operator of the local chain can reset or censor that chain. Copied event data is not proof that independent validators agreed on one history.
+The dealer is trusted, the demonstration process holds all five shares, and any three colluding trustees can decrypt individual ciphertexts; the aggregate-only interface is not a cryptographic barrier to collusion. The verifier requires complete authentic evidence. A malicious machine can encrypt a choice different from the voter's intent. Since the receipt follows selection, detecting this requires an independent voter comparison with the intended candidate; the TEST consistency check alone does not establish intent. One local chain operator can censor or reset the chain, and copied event data is not proof of independent consensus.
 
-\subsection{Why fewer parties reduce the ways to fail}
-The implementation draws a hard boundary at each remaining role.
+\subsection{Threat model and claim boundaries}
+The assets are choices and randomness before disclosure, key shares, batch integrity, retained receipts, complete board evidence, and the tally. Considered adversaries may control a machine, alter or omit transport data, submit rogue or duplicate batches, announce false totals, supply malformed proofs, censor evidence, collude as trustees, coerce voters, or control the local chain and host. The prototype has no voter roll, eligibility checks, turnout reconciliation, or one-person-one-vote enforcement.
 
-\begin{itemize}
-\item The voting program cannot turn the network on. A separate enablement, modeled as a poll worker's action after the close, opens the simulated transport. An early attempt is rejected.
-\item The contract stores the signed payload. It checks the registered signer, the deadline, and the one-batch rule. It does not re-encode the ballots.
-\item A changed byte breaks the machine signature. The contract rejects that submission, and so does the verifier.
-\item A dropped ballot is visible when the voter supplies the receipt that was printed before confirmation. Without that receipt, omission need not leave a trace. The study does not add a voter roll, so it does not prove that every eligible person voted once.
-\item A false announcement fails when the verifier rebuilds the total from confirmed ballots and checked shares.
-\end{itemize}
+\textbf{Assumptions.} The manifest, trustee registry, public key, and exported board evidence must be authentic and complete. A trusted dealer creates 3-of-5 shares; there is no distributed key generation. Machine and host are not remotely attested. The local chain is one process, not independent consensus. TEST selection must be unpredictable to a malicious machine for challenge value, and voters must be able to compare the candidate independently. The integration examples do not establish these assumptions.
 
-Fewer parties are not the same thing as fewer failures of every kind. The machine is still a single place that sees the choice in the clear. The chain operator is still a single place that can refuse the transaction. The gain is that those failures are no longer mixed with a quiet edit by someone standing between the machine and the record.
+\textbf{Properties checked.} The contract checks registration, signatures, deadlines, and append rules. The off-chain verifier checks ballot proofs and openings, receipt signatures and inclusion, supplied partial proofs, and tally consistency. Signatures make edits to signed bytes detectable in both paths; they do not prevent omission or guarantee delivery. These properties do not establish eligibility, coercion resistance, or availability.
+
+\textbf{Collusion and post-detection limits.} Any three trustees can decrypt arbitrary ciphertexts despite the aggregate-only workflow. The dealer is trusted, the demo process holds all shares, and the chain operator can censor or reset the local chain. The contract does not verify ballot or trustee proofs. Missing machine batches, invalid ballots, invalid supplied receipts, or inconsistent event hashes stop the audit without totals; the verifier does not discard ballots to produce a partial election result. Invalid trustee contributions are handled separately as described below. There is no automatic election annulment or dispute-resolution procedure. Media loss, withholding, access costs, exception handling, and preservation are operational scenarios, not findings about Brazil. The cited Brazilian rules describe integrity checks, designated technical recovery, recovery from available machine or media records or a printed BU, reasoned exception records, and preservation~\cite{tseResolution}.
 
 \section{Protocol}
 The group is RFC~3526 group~14: a 2048-bit prime $p$, order $q=(p-1)/2$, and generator $g=2$~\cite{rfc3526}. Secret exponents lie in $\mathbb{Z}_q$, and the public key is $y=g^x$. For a bit $m$ and fresh randomness $r$, exponential ElGamal is
@@ -107,14 +103,18 @@ A ballot is one ciphertext per candidate. Each ciphertext carries a Fiat--Shamir
 The transcript is canonical JSON, hashed with SHA-256, and reduced modulo $q$. Subgroup membership, scalar ranges, encodings, and the proof equations are checked before a ballot is accepted. The equality proof follows Chaum and Pedersen~\cite{chaum1993wallet}. The sharing follows Shamir~\cite{shamir1979}. Neither construction is new here.
 
 \subsection{Receipt, then confirm or test}
-The machine encrypts the choice and signs the receipt before the voter confirms or tests. The receipt binds the election, the chain, the board, the machine account, and a SHA-256 commitment to the ordered ciphertext vector. Proof bytes are not part of that commitment. A 20-hex-character code is an 80-bit locator for lookup. It is not the binding value. Verification uses the full digest and the signature.
+The machine encrypts the selected choice and signs the receipt after selection but before the voter confirms or tests. The receipt binds the election, the chain, the board, the machine account, and a SHA-256 commitment to the ordered ciphertext vector. Proof bytes are not part of that commitment. A 20-hex-character code is an 80-bit locator for lookup. It is not the binding value. Verification uses the full digest and the signature. Because the receipt follows selection, it is not independent evidence of what the voter intended.
 
-On a test, the machine reveals the choice and the randomness. The verifier recomputes the ciphertexts, checks the opening, and marks the ballot spoiled. That ballot is not counted, and the voter votes again. On confirmation, the randomness stays undisclosed and the ciphertext is marked cast. The receipt does not prove that a physical button was pressed, and it does not decide eligibility.
+Before emitting a receipt, the machine checks that either decision would fit the canonical batch-size limit, including the larger TEST opening. A capacity refusal emits no receipt and leaves previously accepted ballots unchanged. This does not provide crash persistence of the machine's in-memory state.
+
+On TEST, the machine reveals the choice and randomness and marks the ballot spoiled. The verifier recomputes the ciphertexts and checks opening consistency. The revised machine-attack command exercises two distinct cases: an inconsistent opening fails cryptographically; a valid opening of a substituted choice passes cryptographic verification but fails a separate comparison with remembered voter intent. Disabling that comparison makes the second demonstration fail to detect the substitution. This is a simulated trusted comparison, not a validated human interface. Tested ballots do not count, and the voter votes again. On confirmation, randomness stays undisclosed. The receipt does not prove a physical button press or eligibility.
 
 \subsection{Direct publication}
 Local voting closes first. The voting program cannot enable transport before that close. After the close, the machine publishes one signed batch before the upload cutoff. The cutoff is not the same event as the local close: machines do not have to finish closing before any machine may upload. When the batch deadline passes, the board closes and a snapshot is fixed. Trustee shares are accepted only after that snapshot and before a separate deadline.
 
 The batch is signed by the same secp256k1 account that submits the transaction. The EIP-191 digest binds the chain, the board, the election, and the payload. The contract checks the signer, the deadline, and the one-batch rule, then emits the payload and its hash. The verifier checks the event and the signature. Nothing in this step decrypts a ballot.
+
+The demonstration submits the finalized batch without first writing a transport file. An optional carrier copy is staged, flushed, and file-synced before atomic no-clobber publication in the same directory. A failed write leaves no completed-looking destination and can be retried. Failure to create the optional copy is reported and does not stop direct submission of the other machine's batch. This mechanism does not guarantee directory-entry durability after power loss, recover lost memory, or make all copies available. Possessing the carrier does not supply the machine-account credential required for submission.
 
 \subsection{Opening only the sum}
 The verifier multiplies the ciphertexts of cast ballots after the board has closed. Spoiled ballots stay out. For a product $(A,B)$ and a trustee share $s_i$, trustee $i$ posts $D_i=A^{s_i}$ and a Chaum--Pedersen proof that $\log_g VK_i=\log_A D_i$, where $VK_i=g^{s_i}$. Each proof binds the election, the aggregate digest, the trustee index, the candidate, the key, the ciphertext, and the commitments. For a set $S$ of three trustee indices,
@@ -124,11 +124,13 @@ The verifier multiplies the ciphertexts of cast ballots after the board has clos
 \end{equation}
 The plaintext group element is $B/D=g^T$. The verifier solves for $T$ inside the declared tally bound. The result is the aggregate. It is not a cryptographic guarantee against three trustees who decide to decrypt some other ciphertext.
 
+A registered trustee may submit once. The revised board pins a digest only after three distinct trustees have posted that digest; one or two early conflicting submissions do not establish the pin. This agreement is not a proof of mathematical correctness. The verifier recomputes the aggregate from all audited ballots, requires the pin to match it, and checks each contribution. Invalid trustee payloads, aggregate bindings, or proofs are excluded and their indices appear in \texttt{rejected\_trustees}. At least three distinct valid contributions are still required. Duplicate trustee events or corrupted event hashes stop the audit. A successful report with rejected trustees verifies the tally from the valid threshold, not the validity of every submitted contribution.
+
 \section{What the checks catch}
-The eight commands below are executable detections. They show that the corresponding check fires on the implementation. They are not a proof that every attack outside this list fails.
+The eight commands below are integration examples showing that corresponding checks fire in this implementation. They are not a security proof. The fail-closed ballot checks and threshold-contribution exclusions described above are program behavior, not an adjudication or automatic annulment procedure.
 
 \begin{itemize}
-\item \textbf{Substituted choice.} A test opening that disagrees with the ciphertext is rejected (\attack{machine}). Untested ballots are not covered by that one test.
+\item \textbf{TEST opening and intent.} The command separately demonstrates rejection of an inconsistent opening and a valid substituted-choice opening detected only by a simulated independent intent comparison (\attack{machine}). Untested ballots and human comparison effectiveness are not covered.
 \item \textbf{Edited transport.} Changing the signed bytes invalidates the signature, and the contract rejects the submission (\attack{transport}).
 \item \textbf{Dropped ballot.} A retained receipt that is absent from the signed batch fails the check (\attack{drop-vote}).
 \item \textbf{False tally.} An announced total that disagrees with the recomputation is rejected (\attack{tally}). The verifier uses the public evidence, not a private list of expected choices.
@@ -147,24 +149,27 @@ If each ballot is tested independently with probability $p$ after the receipt ex
 \label{fig:challenge}
 \end{figure}
 
-\section{Measurements}
-The implementation has three parts: an offline Python machine, a Solidity contract, and a separate Python verifier. The reported run uses one local Anvil process. It is evidence about this implementation, not a fee schedule for a public chain and not a benchmark campaign on other hardware. Tool installation and the first container build are excluded. The recorded environment is arm, Python~3.12.11, Anvil~1.8.5, and Darwin~27.2.0.
+\subsection{Regression scenarios in the revised implementation}
+Revision \texttt{8df8e3a} also contains focused regressions for four concrete failure paths. An artificially reduced payload limit makes the capacity boundary inexpensive to exercise: no new receipt is emitted when either decision would exceed it. Injected carrier-write and publication failures leave no partial destination, preserve existing files, and permit retry. A real local-contract scenario submits two wrong digests first, followed by three valid contributions; the verifier returns the expected tally and reports rejected trustees 1 and 2. A full synthetic election with both optional carrier writes disabled still publishes two batches and verifies totals $(2,2,2)$, with two explicit carrier warnings. These are bounded fault-injection observations, not measured attack probabilities, usability results, or evidence about another voting system.
 
-The run contains six cast ballots, one spoiled ballot, three candidates, two machines, two batches, and three partial decryptions. Each pure operation has three samples. Three fresh process-and-node runs of the full demonstration took 56.590681917~s, 56.174527333~s, and 56.164920292~s. The first of these is the first recorded run, not a run on flushed caches. Three isolated verifier processes took 17.819719167~s, 17.830205542~s, and 17.814804209~s.
+\section{Measurements}
+The implementation has an offline Python machine, a Solidity contract, and a separate Python verifier. The reported run uses one local Anvil process. These observations describe the recorded baseline implementation, not necessarily revised code; they are not a public-chain fee schedule or a benchmark across hardware. Tool installation and the first container build are excluded. The recorded environment is arm, Python~3.12.11, Anvil~1.8.5, and Darwin~27.2.0.
+
+The run contains six cast ballots, one spoiled ballot, three candidates, two machines, two batches, and three partial decryptions. Each pure operation has three samples. Three fresh demonstration-process and node runs took 56.591~s, 56.175~s, and 56.165~s. Each sample is a fresh demonstration process and node; cache state was not controlled. Three isolated verifier processes took 17.820~s, 17.830~s, and 17.815~s.
 
 \begin{table}[t]
 \centering
-\caption{Pure-operation time from three samples. The range is the minimum and the maximum.}
+\caption{Pure-operation time in seconds from three samples, rounded to three decimal places. Range is the minimum and maximum.}
 \label{tab:timings}
 \small
 \begin{tabular}{@{}lrr@{}}
 \toprule
 Operation & Median (s) & Range (s) \\
 \midrule
-Three-candidate encryption & 0.151508750 & 0.151100--0.151819 \\
-Bit proofs, including opening checks & 1.088121958 & 1.085648--1.126727 \\
-Full ballot, including the sum proof & 1.137149792 & 1.134560--1.209563 \\
-Public verification of one ballot & 0.827160750 & 0.823534--0.833354 \\
+Three-candidate encryption & 0.152 & 0.151--0.152 \\
+Bit proofs, including opening checks & 1.088 & 1.086--1.127 \\
+Full ballot, including the sum proof & 1.137 & 1.135--1.210 \\
+Public verification of one ballot & 0.827 & 0.824--0.833 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -174,7 +179,7 @@ Bit-proof time includes ciphertext setup and opening checks. Full-ballot time in
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.88\textwidth]{figures/evaluation.pdf}
-\caption{Medians and minimum-to-maximum ranges from the supplied measurement record, three samples each. The axis is logarithmic elapsed time.}
+\caption{Medians and minimum-to-maximum ranges from the supplied measurement record, three samples each, rounded to three decimal places. The axis is logarithmic elapsed time.}
 \label{fig:evaluation}
 \end{figure}
 
@@ -193,34 +198,28 @@ Second machine, cast only & 32{,}217 & 1{,}314{,}280 & 3 \\
 \end{tabular}
 \end{table}
 
-The two payloads together contain 76{,}633 bytes, including headers and the spoiled ballot. Proof bytes in those batches total 50{,}974. One canonical cast record in the measurement file is 10{,}622 bytes. Each of the three partial decryptions used 219{,}600 gas.
+The two payloads together contain 76{,}633 bytes, including headers and the spoiled ballot. Proof bytes in those batches total 50{,}974. One canonical cast record in the measurement file is 10{,}622 bytes. Each of the three partial decryptions used 219{,}600 gas. These are recorded baseline values, not new benchmark results for revised code.
 
-\subsection{What the same numbers say at national scale}
-Divide 150{,}000{,}000 voters by 500{,}000 machines and the quotient is 300 voters per machine. Multiplying the measured 10{,}622-byte cast record by 150{,}000{,}000, and ignoring headers, spoiled ballots, and replication, gives $1.5933$ decimal terabytes, or $3.1866$ megabytes on each machine. That product is not a delivery estimate. The published payloads above are larger per ballot once headers and a spoiled ballot are included.
-
-Repeating the gas of one three-ballot batch as if it were a fixed cost gives $100 \times 1{,}314{,}280 = 131{,}428{,}000$ gas for 300 cast ballots, and $6.5714\times 10^{13}$ gas for 150 million voters. This repeats one small measurement. It is not a large-batch experiment, a throughput result, or a statement that the implementation can run at that size. The code caps the demonstration at 16 machines, a tally of 16{,}000, and a 16~MiB payload. No partitioning is implemented.
-
-Multiplying the median public verification time by 150 million ballots gives $124{,}074{,}112.5$ sequential core-seconds, about 3.93 core-years. That figure prices one checked ballot and nothing else: not setup, not the aggregate, not disk, and not a slower proof. It does not say that a home computer can check a national election quickly.
-
-The useful reading of these products is narrow. The short path is small in the number of parties. It is not small in bytes or gas if every proof is published on a chain at national volume. A deployment at that volume would have to change the packaging, the chain, or both. This study does not make that change.
+\subsection{Scope of the measurements}
+These measurements cover one small demonstration on one local Anvil process: six cast ballots, one spoiled ballot, three candidates, two machines, two batches, and three partial decryptions. The implementation's current limits are 16 machines, a tally bound of 16{,}000, and a 16~MiB payload. No large-batch, throughput, national-scale, restart-recovery, publication-outage, or accessibility experiment was performed. No linear extrapolation from these observations is warranted.
 
 \section{Related work}
-Helios showed that a remote voter can audit an encrypted ballot, and it uses a mixnet. Its setting does not remove coercion, and a web client is a different trust boundary from a polling-place machine~\cite{adida2008helios}. Benaloh's verifiable elections are the reference for a voter checking an encrypted choice~\cite{benaloh2006simple}. ElectionGuard specifies a full system, with a different group and encryption construction; nothing here claims compatibility or equal assurance~\cite{benaloh2024electionguard}. Scantegrity~II puts end-to-end checks on optical-scan paper~\cite{chaum2008scantegrity}. vVote describes a polling-place system whose operational assumptions are not the ones implemented here~\cite{culnane2015vvote}.
+The 2008 Helios system described by Adida uses encrypted ballots and a mixnet; its remote-voting setting has a different trust boundary from a polling-place machine and does not remove coercion~\cite{adida2008helios}. Benaloh's verifiable elections are the reference for a voter checking an encrypted choice~\cite{benaloh2006simple}. ElectionGuard specifies a full system, with a different group and encryption construction; nothing here claims compatibility or equal assurance~\cite{benaloh2024electionguard}. Scantegrity~II puts end-to-end checks on optical-scan paper~\cite{chaum2008scantegrity}. vVote describes a polling-place system whose operational assumptions are not the ones implemented here~\cite{culnane2015vvote}.
 
-Those systems are larger on purpose. They include credentials, paper processes, or mixnets that this study leaves out. The omission is the method: fewer roles, a direct signed publication, and a threshold that opens the sum. It is not an argument that a smaller codebase is safer in an election that needs eligibility, accessibility, and a legal dispute process.
+Those systems address broader requirements, including credentials, paper processes, or, in the cited 2008 Helios system, a mixnet. This prototype leaves such matters out. Direct signed publication and threshold opening of the aggregate do not show that a smaller system is safer or suitable where eligibility, accessibility, and legal dispute processes are required.
 
 Park, Specter, Narula, and Rivest argue that moving an election onto a network or a chain can add malware, coercion, censorship, and a weak dispute story rather than remove them~\cite{park2021bad}. Direct publication answers only the intermediary. It does not answer a compromised machine, a coerced voter, or a chain that refuses the transaction. Risk-limiting audits need voter-verifiable paper records~\cite{lindeman2012rla}. A ciphertext receipt does not replace those records.
 
 \section{Limits}
-The dealer is a single trusted setup. There is no distributed key generation. Three trustees can read individual ballots. The demonstration holds every share. The implementation is ordinary Python, so it does not hide secrets from a program that logs them. The simulated seal, power cut, reinstall, and hash comparison do not prove that a particular device ran a particular binary.
+The dealer is a single trusted setup. There is no distributed key generation. Three colluding trustees can read individual ballots, and the demonstration holds every share. The implementation is ordinary Python and does not protect secrets from a program that logs them. The simulated seal, power cut, reinstall, and hash comparison do not prove that a particular device ran a particular binary.
 
-There is no voter list, no turnout reconciliation, and no one-person-one-vote check. The contract does not verify ballot proofs, trustee proofs, or the tally arithmetic. A bad proof stops the verifier. A wrong first pin of the aggregate can stop honest shares from matching. The local chain can be reset. None of the eight commands measures inclusion against an adversary who simply never publishes, or against a voter who loses the receipt.
+There is no voter list, eligibility check, turnout reconciliation, or one-person-one-vote check. The contract does not verify ballot proofs, trustee proofs, or tally arithmetic. Three colluding trustees can establish an incorrect pin; insufficient valid contributions stop the audit. The local chain can be reset, and an authentic complete export remains an external assumption. The revised tests cover failed optional carrier writes and conflicting trustee submissions, not arbitrary network outages, power loss, restart recovery, inaccessible verification tools, loss of every copy, or human challenge participation. A missing complete batch is rejected, not recovered. Detection provides neither automatic annulment nor a dispute remedy.
 
 \section{Conclusion}
-The path from an offline ballot to a public tally can be short. The machine signs one batch and sends it. The contract accepts that signature and no other party's repackaging. Three of five trustees open the sum. A separate program checks the receipt and recomputes the total. Each of those restrictions removes a place where an intermediary could have changed the story. The local run shows the checks firing, and the measurements show what the current packaging costs. They do not show a national election, a new cryptosystem, or a tally that remains correct when the machine, three trustees, or the chain operator abandon the protocol.
+The implementation publishes a finalized signed batch, checks complete ballot evidence, and derives a tally from verified trustee contributions. Its executable examples document specific acceptance and rejection behavior. The historical measurements describe one small local run. These observations do not establish national readiness, institutional independence, human-verification effectiveness, or protection against a compromised machine, three colluding trustees, or a chain operator that censors publication.
 
 \section*{Availability}
-The implementation, the eight attack commands, and the measurement record accompany this manuscript. The code is under the Apache License~2.0. This PDF is the preprint. It is not a journal article, and no institutional affiliation is claimed. An arXiv identifier can be added when the preprint is posted.
+The revised executable checks are identified by source revision \texttt{8df8e3a}; the historical timing and gas record is retained from revision \texttt{f8d9358}. The recorded artifacts are \path{demo/results/measurements.json}, \path{demo/results/evidence.json}, \path{demo/results/manifest.json}, \path{demo/results/receipts.json}, and \path{demo/results/verifier-report.json}. The \texttt{Makefile} defines \texttt{make test} and \texttt{make attacks}. The revised regression sources are \path{tests/test_machine.py}, \path{tests/test_transport.py}, \path{tests/test_chain.py}, \path{tests/test_verifier.py}, and \path{tests/test_demo.py}; the intent-comparison examples are in \path{tests/test_attacks.py}. These measurements describe the baseline and are not automatically results for revised code. The code is under the Apache License~2.0. No permanent archive, DOI, arXiv posting, or remote URL is available yet; no publication is claimed.
 
 \bibliographystyle{plain}
 \bibliography{refs}
