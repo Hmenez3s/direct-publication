@@ -7,6 +7,7 @@ by a later bulletin-board submission.
 
 from __future__ import annotations
 
+import os
 import tempfile
 from pathlib import Path
 from typing import Self
@@ -69,6 +70,27 @@ def _validated_batch(batch: SignedBatch, manifest: ElectionManifest) -> bytes:
     return batch.to_bytes()
 
 
+def _write_exclusive(destination: Path, data: bytes) -> None:
+    """Publish complete bytes without replacement; fsync does not ensure directory durability."""
+    fd, staging_name = tempfile.mkstemp(
+        prefix=f".{destination.name}.", suffix=".tmp", dir=destination.parent
+    )
+    staging = Path(staging_name)
+    try:
+        with os.fdopen(fd, "wb") as output:
+            output.write(data)
+            output.flush()
+            os.fsync(output.fileno())
+        try:
+            os.link(staging, destination)
+        except FileExistsError:
+            raise
+        except OSError as exc:
+            raise OSError(f"atomic no-clobber publication failed for {destination}") from exc
+    finally:
+        staging.unlink(missing_ok=True)
+
+
 def export_carrier(
     switch: PhysicalSwitchSimulator,
     machine: VotingMachine,
@@ -83,8 +105,7 @@ def export_carrier(
     if switch._sealed_machine is not machine:
         raise PermissionError("seal event belongs to a different machine")
     envelope = _validated_batch(machine._closed, manifest)
-    with Path(destination).open("xb") as carrier:
-        carrier.write(envelope)
+    _write_exclusive(Path(destination), envelope)
     return envelope
 
 
@@ -126,8 +147,7 @@ class ScratchReinstall:
         if self._root.is_symlink() or not self._root.is_dir():
             raise PermissionError("owned scratch root is unavailable")
         target = self._root / "simulated-image.bin"
-        with target.open("xb") as output:
-            output.write(image)
+        _write_exclusive(target, image)
         return target
 
     def close(self) -> None:

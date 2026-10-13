@@ -34,8 +34,8 @@ from urna.schema import BatchPayload, Receipt, TrusteePublic, aggregate_digest
 from urna.transport import PhysicalSwitchSimulator, ScratchReinstall, export_carrier
 from verifier.audit import audit_board
 
-APPROVED_CORE_SHA256 = "95a6d8fefac5a7aae0c83dab163dcc17ef2f5e0b374d7364334c3e18adcf63a5"
-APPROVED_CORE_BYTES = 792540
+APPROVED_CORE_SHA256 = "d8dc11ccadbf5ad9ad9525e4e10d8248821dbfe1b515aaa2ba184d67fb216dcd"
+APPROVED_CORE_BYTES = 793932
 CORE_FILES = (
     "pyproject.toml",
     "uv.lock",

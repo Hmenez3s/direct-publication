@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+import urna.transport as transport
 from tests.test_machine import setup_machine
 from urna.encoding import sha256_hex
 from urna.schema import BatchPayload, SignedBatch
@@ -81,6 +82,73 @@ def test_carrier_is_exact_signed_envelope_and_rejects_tampering(tmp_path: Path) 
         import_carrier(bad_sig, manifest)
 
 
+def test_carrier_write_failure_leaves_no_partial_file_and_can_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, _, machine = setup_machine()
+    batch = machine.close()
+    switch = PhysicalSwitchSimulator()
+    switch.poll_worker_seal(machine)
+    destination = tmp_path / "carrier.bin"
+    real_fdopen = transport.os.fdopen
+
+    class PartialWriter:
+        def __init__(self, fd: int) -> None:
+            self._file = real_fdopen(fd, "wb")
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            self._file.close()
+
+        def write(self, data: bytes) -> int:
+            self._file.write(data[:13])
+            raise OSError("injected write failure")
+
+        def flush(self) -> None:
+            self._file.flush()
+
+        def fileno(self) -> int:
+            return self._file.fileno()
+
+    monkeypatch.setattr(transport.os, "fdopen", lambda fd, mode: PartialWriter(fd))
+    with pytest.raises(OSError, match="injected write failure"):
+        export_carrier(switch, machine, manifest, destination)
+    assert not destination.exists()
+    assert list(tmp_path.iterdir()) == []
+
+    monkeypatch.setattr(transport.os, "fdopen", real_fdopen)
+    assert export_carrier(switch, machine, manifest, destination) == batch.to_bytes()
+    assert destination.read_bytes() == batch.to_bytes()
+    assert list(tmp_path.iterdir()) == [destination]
+
+
+def test_carrier_commit_failure_cleans_staging_and_can_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, _, machine = setup_machine()
+    batch = machine.close()
+    switch = PhysicalSwitchSimulator()
+    switch.poll_worker_seal(machine)
+    destination = tmp_path / "carrier.bin"
+    real_link = transport.os.link
+
+    def fail_link(source, target) -> None:
+        raise OSError("injected commit failure")
+
+    monkeypatch.setattr(transport.os, "link", fail_link)
+    with pytest.raises(OSError, match="atomic no-clobber publication failed"):
+        export_carrier(switch, machine, manifest, destination)
+    assert not destination.exists()
+    assert list(tmp_path.iterdir()) == []
+
+    monkeypatch.setattr(transport.os, "link", real_link)
+    assert export_carrier(switch, machine, manifest, destination) == batch.to_bytes()
+    assert destination.read_bytes() == batch.to_bytes()
+    assert list(tmp_path.iterdir()) == [destination]
+
+
 def test_carrier_creation_never_overwrites_existing_or_symlink(tmp_path: Path) -> None:
     manifest, _, machine = setup_machine()
     switch = PhysicalSwitchSimulator()
@@ -90,12 +158,14 @@ def test_carrier_creation_never_overwrites_existing_or_symlink(tmp_path: Path) -
     with pytest.raises(FileExistsError):
         export_carrier(switch, machine, manifest, protected)
     assert protected.read_bytes() == b"do not overwrite"
+    assert list(tmp_path.iterdir()) == [protected]
 
     link = tmp_path / "link"
     link.symlink_to(protected)
     with pytest.raises(FileExistsError):
         export_carrier(switch, machine, manifest, link)
     assert protected.read_bytes() == b"do not overwrite"
+    assert set(tmp_path.iterdir()) == {protected, link}
 
 
 def _closed(machine):
@@ -130,6 +200,28 @@ def test_scratch_reinstall_hash_checks_and_only_writes_owned_new_root(tmp_path: 
     assert not root.exists()
     assert source.read_bytes() == before
     assert outside.read_bytes() == b"protected"
+
+
+def test_scratch_install_failure_cleans_staging_and_can_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    image = b"synthetic image"
+    digest = sha256_hex(image)
+    real_link = transport.os.link
+    with ScratchReinstall() as scratch:
+
+        def fail_link(source, target) -> None:
+            raise OSError("injected commit failure")
+
+        monkeypatch.setattr(transport.os, "link", fail_link)
+        with pytest.raises(OSError, match="atomic no-clobber publication failed"):
+            scratch.install_image(image, digest)
+        assert list(scratch.root.iterdir()) == []
+
+        monkeypatch.setattr(transport.os, "link", real_link)
+        installed = scratch.install_image(image, digest)
+        assert installed.read_bytes() == image
+        assert list(scratch.root.iterdir()) == [installed]
 
 
 def test_scratch_reinstall_does_not_accept_arbitrary_cleanup_root(tmp_path: Path) -> None:
