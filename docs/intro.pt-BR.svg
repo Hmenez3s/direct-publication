@@ -1,627 +1,78 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="1000" height="600" role="img" aria-labelledby="title desc" xml:lang="pt-BR" lang="pt-BR" data-duration="56">
-<title id="title">Urna Aberta: como uma cédula vai da urna offline à blockchain e ao verificador</title>
-<desc id="desc">Explicação animada em 7 cenas de 8 segundos, seguindo um recibo simbólico R7. 1: Não é só votar, é poder conferir depois: a urna offline cifra, a blockchain registra, o verificador público confere; o recibo volta com o eleitor. 2: A urna cifra a escolha e imprime o recibo assinado R7 antes da decisão; o recibo não mostra o candidato e R7 é só um código simbólico de localização. 3: CONFIRMAR mantém R7 cifrado para a apuração; a alternativa TESTAR abre e confere a escolha, anula essa cédula e o eleitor vota de novo. 4: Encerrada a votação, a urna assina um lote com R7 e o envia como transação ao contrato Solidity na blockchain, que aceita urna registrada, um lote e dentro do prazo, e recusa assinatura inválida ou segundo lote. 5: Três de cinco guardiões publicam na blockchain partes da decriptação, com prova, só do total auditado. 6: Um verificador independente lê a cópia pública, confere o recibo R7 assinado completo, a inclusão no lote, as provas e refaz a conta; se R7 sumir, a conferência acusa. 7: A urna cifra, a blockchain registra, você confere. Protótipo educacional; blockchain local na demo.</desc>
+<title id="title">Urna Aberta: o caminho de uma cédula da urna offline à blockchain e à conferência pública</title>
+<desc id="desc">Animação em 7 cenas de 8 segundos que segue uma cédula. 1: Você escolhe e a urna, offline e sem Internet durante a votação, cifra a escolha. 2: Antes da decisão, a urna entrega um recibo assinado, R7, que não mostra o candidato. Confirmar mantém a cédula cifrada para a apuração; testar abre a cédula para conferir a escolha, anula essa cédula e o eleitor vota de novo. R7 é só um código simbólico de localização; decidem o recibo assinado completo e as provas. 3: Ao encerrar, a urna envia um único lote assinado de cédulas cifradas para um contrato numa blockchain local (Anvil). O contrato confere assinatura, urna registrada, um lote por urna e prazo; ele não verifica as provas criptográficas. 4: As cédulas publicadas são somadas ainda cifradas, sem abrir escolhas individuais. 5: Três de cinco guardiões, que guardam partes da chave, publicam contribuições com prova para decifrar só a soma. Isso é a regra do fluxo, não uma garantia matemática: três guardiões em conluio poderiam decifrar cédulas individuais. 6: Um verificador independente usa os dados públicos, as provas e o seu recibo assinado para conferir a inclusão da cédula e recalcular o total. Só os recibos fornecidos podem ser conferidos. 7: Além de ler o resultado, você pode conferir a inclusão e refazer a conta. Protótipo educacional, sem garantia de sigilo absoluto; blockchain local (Anvil).</desc>
 <style>
-text{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
-.code,.code2,.code3,.rbig,.rmini,.screen,.cubel,.cubes,.tot{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
-.brand{font-size:15px;font-weight:800;letter-spacing:2px;fill:#4ee3b5}
-.brands{font-size:14px;fill:#a9bcc0}
-.map{font-size:14px;font-weight:600}.mapb{font-size:14px;font-weight:800;letter-spacing:1px}
-.k{font-size:15px;font-weight:700;letter-spacing:1.6px;fill:#4ee3b5}
-.h{font-size:32px;font-weight:700;fill:#f4faf9}
-.s{font-size:19px;fill:#c0d0d3}
-.f{font-size:15px;fill:#a9bcc0}
-.mega{font-size:50px;font-weight:800;letter-spacing:3px;fill:#4ee3b5}
-.mega2{font-size:34px;font-weight:800;letter-spacing:2px;fill:#4ee3b5}
-.big2{font-size:30px;font-weight:800;letter-spacing:1.5px;fill:#4ee3b5}
-.l{font-size:19px;font-weight:700;fill:#eef6f5}
-.l2{font-size:17px;font-weight:700;fill:#eef6f5}
-.fn{font-size:17px;font-weight:600;fill:#4ee3b5}
-.m{font-size:15px;fill:#a9bcc0}.m2{font-size:15px;fill:#eef6f5}
-.sm{font-size:14px;fill:#a9bcc0}.xs{font-size:13px;fill:#7f969b}
-.tag{font-size:13px;font-weight:800;letter-spacing:1.2px}
-.rc{font-size:16px;font-weight:600;fill:#38d0f0}.rc2{font-size:14px;font-weight:700;fill:#38d0f0}
-.btn{font-size:24px;font-weight:800;letter-spacing:1.5px}.pill{font-size:20px;font-weight:800;letter-spacing:1px}
-.stamp{font-size:24px;font-weight:800;letter-spacing:2px;fill:#ff8a80}
-.code{font-size:21px;font-weight:700}.code2{font-size:17px;font-weight:700;fill:#c8d8db}.code3{font-size:15px;font-weight:700}
-.screen{font-size:36px;font-weight:800;fill:#38d0f0}
-.cubel{font-size:13px;font-weight:700;fill:#eafff8}.cubes{font-size:11px;font-weight:700;fill:#eafff8}
-.tot{font-size:24px;font-weight:800;fill:#f4faf9}
-.rk{font-size:14px;font-weight:800;letter-spacing:2px;fill:#0a1a17}.rbig{font-size:44px;font-weight:800;fill:#05343c}
-.rs{font-size:12.5px;fill:#24403b}.rsb{font-size:13px;font-weight:700;fill:#0a1a17}.rmini{font-size:16px;font-weight:800;fill:#05343c}
-.q{font-size:15px;font-style:italic;fill:#a9bcc0}.ans{font-size:17px;font-weight:700;fill:#eef6f5}
-.mint{fill:#4ee3b5}.cyan{fill:#38d0f0}.red{fill:#ff8a80}.mid{text-anchor:middle}.end{text-anchor:end}
-/* Every animation shares one 56 s clock, so WAAPI currentTime seeks are deterministic. */
+text{font-family:"Avenir Next","Avenir","Helvetica Neue",Helvetica,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-weight:400}
+.br{font-size:14px;font-weight:500;fill:#D2D1CC;letter-spacing:.2px}.tg{font-size:14px;fill:#85847F}
+.h{font-size:34px;fill:#ECEBE7;letter-spacing:-.2px}
+.s{font-size:19px;fill:#A3A29E}
+.l{font-size:16px;font-weight:500;fill:#B9B8B3}
+.m{font-size:14px;fill:#8C8B87}
+.b{font-size:20px;font-weight:500;fill:#ECEBE7}
+.o{font-size:18px;fill:#ECEBE7}
+.f{font-size:13px;fill:#85847F;letter-spacing:.2px}
+.rk{font-size:11px;font-weight:500;fill:#6B6A66;letter-spacing:.4px}
+.rr{font-size:26px;font-weight:500;fill:#1C1C1D}
+.sig{font-size:30px;fill:#ECEBE7}
+.fb{transform-box:fill-box;transform-origin:50% 50%}.fbl{transform-box:fill-box;transform-origin:0 50%}
+/* One shared 56 s clock for every animation, so WAAPI currentTime seeks stay deterministic. */
 .a{animation-duration:56s;animation-timing-function:linear;animation-iteration-count:infinite;animation-fill-mode:both}
-.flow{stroke-dasharray:7 7;animation-name:flow}
-@keyframes flow{from{stroke-dashoffset:0}to{stroke-dashoffset:-1120}}
-#scene-7{animation-name:k-scene-7}@keyframes k-scene-7{0%{opacity:0}85.714%{opacity:0}86.25%{opacity:1}100%{opacity:1}}
-#scene-6{animation-name:k-scene-6}@keyframes k-scene-6{0%{opacity:0}71.429%{opacity:0}71.964%{opacity:1}85.179%{opacity:1}85.714%{opacity:0}100%{opacity:0}}
-#scene-5{animation-name:k-scene-5}@keyframes k-scene-5{0%{opacity:0}57.143%{opacity:0}57.679%{opacity:1}70.893%{opacity:1}71.429%{opacity:0}100%{opacity:0}}
-#scene-4{animation-name:k-scene-4}@keyframes k-scene-4{0%{opacity:0}42.857%{opacity:0}43.393%{opacity:1}56.607%{opacity:1}57.143%{opacity:0}100%{opacity:0}}
-#scene-3{animation-name:k-scene-3}@keyframes k-scene-3{0%{opacity:0}28.571%{opacity:0}29.107%{opacity:1}42.321%{opacity:1}42.857%{opacity:0}100%{opacity:0}}
-#scene-2{animation-name:k-scene-2}@keyframes k-scene-2{0%{opacity:0}14.286%{opacity:0}14.821%{opacity:1}28.036%{opacity:1}28.571%{opacity:0}100%{opacity:0}}
-#scene-1{animation-name:k-scene-1}@keyframes k-scene-1{0%{opacity:1}13.75%{opacity:1}14.286%{opacity:0}100%{opacity:0}}
-#map-1{animation-name:k-map-1}@keyframes k-map-1{0%{opacity:1}14.286%{opacity:1}14.821%{opacity:1}28.571%{opacity:1}29.107%{opacity:1}42.857%{opacity:1}43.393%{opacity:0}57.143%{opacity:0}57.679%{opacity:0}71.429%{opacity:0}71.964%{opacity:0}85.714%{opacity:0}86.25%{opacity:1}100%{opacity:1}}
-#map-2{animation-name:k-map-2}@keyframes k-map-2{0%{opacity:1}14.286%{opacity:1}14.821%{opacity:0}28.571%{opacity:0}29.107%{opacity:0}42.857%{opacity:0}43.393%{opacity:1}57.143%{opacity:1}57.679%{opacity:1}71.429%{opacity:1}71.964%{opacity:0}85.714%{opacity:0}86.25%{opacity:1}100%{opacity:1}}
-#map-3{animation-name:k-map-3}@keyframes k-map-3{0%{opacity:1}14.286%{opacity:1}14.821%{opacity:0}28.571%{opacity:0}29.107%{opacity:0}42.857%{opacity:0}43.393%{opacity:0}57.143%{opacity:0}57.679%{opacity:0}71.429%{opacity:0}71.964%{opacity:1}85.714%{opacity:1}86.25%{opacity:1}100%{opacity:1}}
-#s1-chip{animation-name:k-s1-chip}@keyframes k-s1-chip{0%{opacity:1;transform:translate(0px,0px)}1.429%{opacity:1;transform:translate(0px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}8.214%{opacity:1;transform:translate(600px,0px)}100%{opacity:1;transform:translate(600px,0px)}}
-#s2-mach{animation-name:k-s2-mach}@keyframes k-s2-mach{0%{opacity:0;transform:translate(-12px,0px)}14.375%{opacity:0;transform:translate(-12px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}15.179%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s2-enc{animation-name:k-s2-enc}@keyframes k-s2-enc{0%{opacity:0;transform:translate(-10px,0px)}14.732%{opacity:0;transform:translate(-10px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}15.536%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s2-card{animation-name:k-s2-card}@keyframes k-s2-card{0%{opacity:0;transform:translate(-40px,0px)}14.911%{opacity:0;transform:translate(-40px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}15.714%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s2-print{animation-name:k-s2-print}@keyframes k-s2-print{0%{opacity:0;transform:translate(0px,-26px)}15.179%{opacity:0;transform:translate(0px,-26px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}15.982%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s2-same{animation-name:k-s2-same}@keyframes k-s2-same{0%{opacity:0;transform:translate(-8px,0px)}15.804%{opacity:0;transform:translate(-8px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}16.607%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s2-choice{animation-name:k-s2-choice}@keyframes k-s2-choice{0%{opacity:0;transform:translate(14px,0px)}15.536%{opacity:0;transform:translate(14px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}16.339%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s3-a1{animation-name:k-s3-a1}@keyframes k-s3-a1{0%{opacity:0;transform:translate(-10px,0px)}28.661%{opacity:0;transform:translate(-10px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}29.464%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s3-a2{animation-name:k-s3-a2}@keyframes k-s3-a2{0%{opacity:0;transform:translate(-10px,0px)}29.018%{opacity:0;transform:translate(-10px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}29.821%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s3-a3{animation-name:k-s3-a3}@keyframes k-s3-a3{0%{opacity:0;transform:translate(-10px,0px)}29.375%{opacity:0;transform:translate(-10px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}30.179%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s3-a4{animation-name:k-s3-a4}@keyframes k-s3-a4{0%{opacity:0;transform:translate(-10px,0px)}29.732%{opacity:0;transform:translate(-10px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}30.536%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s3-b{animation-name:k-s3-b}@keyframes k-s3-b{0%{opacity:0;transform:translate(0px,10px)}30%{opacity:0;transform:translate(0px,10px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}30.804%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s4-batch{animation-name:k-s4-batch}@keyframes k-s4-batch{0%{opacity:0;transform:translate(-12px,0px)}42.946%{opacity:0;transform:translate(-12px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}43.75%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s4-tx{animation-name:k-s4-tx}@keyframes k-s4-tx{0%{opacity:0;transform:translate(-12px,0px)}43.214%{opacity:0;transform:translate(-12px,0px)}43.571%{opacity:1;transform:translate(-12px,0px)}43.661%{opacity:1;transform:translate(-12px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}45%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s4-panel{animation-name:k-s4-panel}@keyframes k-s4-panel{0%{opacity:0;transform:translate(12px,0px)}43.125%{opacity:0;transform:translate(12px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}43.929%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s4-checks{animation-name:k-s4-checks}@keyframes k-s4-checks{0%{opacity:0.25}44.821%{opacity:0.25}45.536%{opacity:1.0}100%{opacity:1.0}}
-#s4-new{animation-name:k-s4-new}@keyframes k-s4-new{0%{opacity:0.0}45.179%{opacity:0.0}45.893%{opacity:1.0}100%{opacity:1.0}}
-#s5-tr{animation-name:k-s5-tr}@keyframes k-s5-tr{0%{opacity:0;transform:translate(-10px,0px)}57.232%{opacity:0;transform:translate(-10px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}58.036%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s5-chain{animation-name:k-s5-chain}@keyframes k-s5-chain{0%{opacity:0;transform:translate(0px,10px)}57.411%{opacity:0;transform:translate(0px,10px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}58.214%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s5-share1{animation-name:k-s5-share1}@keyframes k-s5-share1{0%{opacity:0;transform:translate(0px,0px)}57.857%{opacity:0;transform:translate(0px,0px)}58.214%{opacity:1;transform:translate(0px,0px)}58.393%{opacity:1;transform:translate(0px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}60%{opacity:1;transform:translate(60px,0px)}100%{opacity:1;transform:translate(60px,0px)}}
-#s5-share2{animation-name:k-s5-share2}@keyframes k-s5-share2{0%{opacity:0;transform:translate(0px,0px)}57.857%{opacity:0;transform:translate(0px,0px)}58.214%{opacity:1;transform:translate(0px,0px)}58.929%{opacity:1;transform:translate(0px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}60.536%{opacity:1;transform:translate(60px,0px)}100%{opacity:1;transform:translate(60px,0px)}}
-#s5-share3{animation-name:k-s5-share3}@keyframes k-s5-share3{0%{opacity:0;transform:translate(0px,0px)}57.857%{opacity:0;transform:translate(0px,0px)}58.214%{opacity:1;transform:translate(0px,0px)}59.464%{opacity:1;transform:translate(0px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}61.071%{opacity:1;transform:translate(60px,0px)}100%{opacity:1;transform:translate(60px,0px)}}
-#s5-sum{animation-name:k-s5-sum}@keyframes k-s5-sum{0%{opacity:0;transform:translate(12px,0px)}57.768%{opacity:0;transform:translate(12px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}58.571%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s5-note{animation-name:k-s5-note}@keyframes k-s5-note{0%{opacity:0;transform:translate(0px,8px)}58.214%{opacity:0;transform:translate(0px,8px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}59.018%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s6-rc{animation-name:k-s6-rc}@keyframes k-s6-rc{0%{opacity:0;transform:translate(-16px,0px)}71.518%{opacity:0;transform:translate(-16px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}72.321%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s6-ver{animation-name:k-s6-ver}@keyframes k-s6-ver{0%{opacity:0;transform:translate(0px,8px)}71.696%{opacity:0;transform:translate(0px,8px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}72.5%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s6-ok1{animation-name:k-s6-ok1}@keyframes k-s6-ok1{0%{opacity:0.15}72.232%{opacity:0.15}72.768%{opacity:1.0}100%{opacity:1.0}}
-#s6-ok2{animation-name:k-s6-ok2}@keyframes k-s6-ok2{0%{opacity:0.15}72.589%{opacity:0.15}73.125%{opacity:1.0}100%{opacity:1.0}}
-#s6-ok3{animation-name:k-s6-ok3}@keyframes k-s6-ok3{0%{opacity:0.15}72.946%{opacity:0.15}73.482%{opacity:1.0}100%{opacity:1.0}}
-#s6-ok4{animation-name:k-s6-ok4}@keyframes k-s6-ok4{0%{opacity:0.15}73.304%{opacity:0.15}73.839%{opacity:1.0}100%{opacity:1.0}}
-#s6-pass{animation-name:k-s6-pass}@keyframes k-s6-pass{0%{opacity:0.0}73.661%{opacity:0.0}74.375%{opacity:1.0}100%{opacity:1.0}}
-#s6-src{animation-name:k-s6-src}@keyframes k-s6-src{0%{opacity:0;transform:translate(10px,0px)}71.875%{opacity:0;transform:translate(10px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}72.679%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-#s6-what{animation-name:k-s6-what}@keyframes k-s6-what{0%{opacity:0;transform:translate(10px,0px)}72.857%{opacity:0;transform:translate(10px,0px);animation-timing-function:cubic-bezier(.2,.7,.2,1)}73.661%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
-/* Reduced motion: no movement, show the complete recap scene only. */
-@media (prefers-reduced-motion:reduce){.a{animation:none!important}.scene{opacity:0!important}#scene-7{opacity:1!important}.maplit{opacity:1!important}}
+#sp1{animation-name:k-sp1}@keyframes k-sp1{0%{opacity:0;transform:translate(0px,4px)}0.8929%{opacity:0;transform:translate(0px,4px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}2.1429%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s1-ar1{animation-name:k-s1-ar1}@keyframes k-s1-ar1{0%{opacity:0;transform:translate(-8px,0px)}0.5357%{opacity:0;transform:translate(-8px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}1.4286%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s1-lock{animation-name:k-s1-lock}@keyframes k-s1-lock{0%{opacity:0}2.0536%{opacity:0;animation-timing-function:cubic-bezier(.22,.61,.36,1)}2.7679%{opacity:1}100%{opacity:1}}
+#s1-ghost{animation-name:k-s1-ghost}@keyframes k-s1-ghost{0%{opacity:0;transform:translate(0px,0px)}0.8929%{opacity:0;transform:translate(0px,0px)}1.0714%{opacity:1;transform:translate(0px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}2.5%{opacity:0;transform:translate(300px,0px)}100%{opacity:0;transform:translate(300px,0px)}}
+#s1-ar2{animation-name:k-s1-ar2}@keyframes k-s1-ar2{0%{opacity:0;transform:translate(-8px,0px)}2.3214%{opacity:0;transform:translate(-8px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}3.2143%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s1-seal{animation-name:k-s1-seal}@keyframes k-s1-seal{0%{opacity:0;transform:translate(-40px,0px)}2.5%{opacity:0;transform:translate(-40px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}3.9286%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#sp2{animation-name:k-sp2}@keyframes k-sp2{0%{opacity:0;transform:translate(0px,4px)}15.1786%{opacity:0;transform:translate(0px,4px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}16.4286%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s2-rc{animation-name:k-s2-rc}@keyframes k-s2-rc{0%{opacity:0;transform:translate(-50px,0px)}14.8214%{opacity:0;transform:translate(-50px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}16.25%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s2-fork{animation-name:k-s2-fork}@keyframes k-s2-fork{0%{opacity:0}16.4286%{opacity:0;animation-timing-function:cubic-bezier(.22,.61,.36,1)}17.3214%{opacity:1}100%{opacity:1}}
+#s2-conf{animation-name:k-s2-conf}@keyframes k-s2-conf{0%{opacity:0;transform:translate(-10px,0px)}16.7857%{opacity:0;transform:translate(-10px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}17.8571%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s2-test{animation-name:k-s2-test}@keyframes k-s2-test{0%{opacity:0;transform:translate(-10px,0px)}17.4107%{opacity:0;transform:translate(-10px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}18.4821%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#sp3{animation-name:k-sp3}@keyframes k-sp3{0%{opacity:0;transform:translate(0px,4px)}29.4643%{opacity:0;transform:translate(0px,4px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}30.7143%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s3-tr{animation-name:k-s3-tr}@keyframes k-s3-tr{0%{opacity:0}29.1071%{opacity:0;animation-timing-function:cubic-bezier(.22,.61,.36,1)}30%{opacity:1}100%{opacity:1}}
+#s3-blk{animation-name:k-s3-blk}@keyframes k-s3-blk{0%{opacity:0}31.3393%{opacity:0;animation-timing-function:cubic-bezier(.22,.61,.36,1)}32.0536%{opacity:1}100%{opacity:1}}
+#s3-pk{animation-name:k-s3-pk}@keyframes k-s3-pk{0%{opacity:0;transform:translate(-576px,-26px)}29.6429%{opacity:0;transform:translate(-576px,-26px)}29.9107%{opacity:1;transform:translate(-576px,-26px)}30.0714%{opacity:1;transform:translate(-522.5px,-60px)}30.2321%{opacity:1;transform:translate(-462px,-86.3px)}30.3929%{opacity:1;transform:translate(-396.6px,-104.7px)}30.5536%{opacity:1;transform:translate(-328.9px,-115.1px)}30.7143%{opacity:1;transform:translate(-261px,-117.2px)}30.875%{opacity:1;transform:translate(-195.3px,-111.1px)}31.0357%{opacity:1;transform:translate(-134px,-96.5px)}31.1964%{opacity:1;transform:translate(-79.5px,-73.2px)}31.3571%{opacity:1;transform:translate(-34.1px,-41.1px)}31.5179%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#sp4{animation-name:k-sp4}@keyframes k-sp4{0%{opacity:0;transform:translate(0px,4px)}43.75%{opacity:0;transform:translate(0px,4px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}45%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s4-d0{animation-name:k-s4-d0}@keyframes k-s4-d0{0%{opacity:0;transform:translate(-254px,-85px)}43.6607%{opacity:0;transform:translate(-254px,-85px)}43.9286%{opacity:1;transform:translate(-254px,-85px)}44.1295%{opacity:1;transform:translate(-211.6px,-81.3px)}44.3304%{opacity:1;transform:translate(-176.1px,-71.7px)}44.5312%{opacity:1;transform:translate(-145.5px,-58.1px)}44.7321%{opacity:1;transform:translate(-118px,-42.5px)}44.933%{opacity:1;transform:translate(-91.6px,-26.9px)}45.1339%{opacity:1;transform:translate(-64.4px,-13.3px)}45.3348%{opacity:1;transform:translate(-34.5px,-3.7px)}45.5357%{opacity:1;transform:translate(0px,0px)}46.0714%{opacity:0;transform:translate(0px,0px)}100%{opacity:0;transform:translate(0px,0px)}}
+#s4-d1{animation-name:k-s4-d1}@keyframes k-s4-d1{0%{opacity:0;transform:translate(-254px,-23px)}43.8036%{opacity:0;transform:translate(-254px,-23px)}44.0714%{opacity:1;transform:translate(-254px,-23px)}44.2723%{opacity:1;transform:translate(-211.6px,-22px)}44.4732%{opacity:1;transform:translate(-176.1px,-19.4px)}44.6741%{opacity:1;transform:translate(-145.5px,-15.7px)}44.875%{opacity:1;transform:translate(-118px,-11.5px)}45.0759%{opacity:1;transform:translate(-91.6px,-7.3px)}45.2768%{opacity:1;transform:translate(-64.4px,-3.6px)}45.4777%{opacity:1;transform:translate(-34.5px,-1px)}45.6786%{opacity:1;transform:translate(0px,0px)}46.2143%{opacity:0;transform:translate(0px,0px)}100%{opacity:0;transform:translate(0px,0px)}}
+#s4-d2{animation-name:k-s4-d2}@keyframes k-s4-d2{0%{opacity:0;transform:translate(-254px,39px)}43.9464%{opacity:0;transform:translate(-254px,39px)}44.2143%{opacity:1;transform:translate(-254px,39px)}44.4152%{opacity:1;transform:translate(-211.6px,37.3px)}44.6161%{opacity:1;transform:translate(-176.1px,32.9px)}44.817%{opacity:1;transform:translate(-145.5px,26.7px)}45.0179%{opacity:1;transform:translate(-118px,19.5px)}45.2188%{opacity:1;transform:translate(-91.6px,12.3px)}45.4196%{opacity:1;transform:translate(-64.4px,6.1px)}45.6205%{opacity:1;transform:translate(-34.5px,1.7px)}45.8214%{opacity:1;transform:translate(0px,0px)}46.3571%{opacity:0;transform:translate(0px,0px)}100%{opacity:0;transform:translate(0px,0px)}}
+#s4-d3{animation-name:k-s4-d3}@keyframes k-s4-d3{0%{opacity:0;transform:translate(-254px,101px)}44.0893%{opacity:0;transform:translate(-254px,101px)}44.3571%{opacity:1;transform:translate(-254px,101px)}44.558%{opacity:1;transform:translate(-211.6px,96.7px)}44.7589%{opacity:1;transform:translate(-176.1px,85.2px)}44.9598%{opacity:1;transform:translate(-145.5px,69px)}45.1607%{opacity:1;transform:translate(-118px,50.5px)}45.3616%{opacity:1;transform:translate(-91.6px,32px)}45.5625%{opacity:1;transform:translate(-64.4px,15.8px)}45.7634%{opacity:1;transform:translate(-34.5px,4.3px)}45.9643%{opacity:1;transform:translate(0px,0px)}46.5%{opacity:0;transform:translate(0px,0px)}100%{opacity:0;transform:translate(0px,0px)}}
+#s4-sum{animation-name:k-s4-sum}@keyframes k-s4-sum{0%{opacity:0;transform:translate(-12px,0px)}45.1786%{opacity:0;transform:translate(-12px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}46.6071%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#sp5{animation-name:k-sp5}@keyframes k-sp5{0%{opacity:0;transform:translate(0px,4px)}58.0357%{opacity:0;transform:translate(0px,4px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}59.2857%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s5-d0{animation-name:k-s5-d0}@keyframes k-s5-d0{0%{opacity:0;transform:translate(-226px,-104px)}57.9464%{opacity:0;transform:translate(-226px,-104px)}58.2143%{opacity:1;transform:translate(-226px,-104px)}58.404%{opacity:1;transform:translate(-191.3px,-99.5px)}58.5938%{opacity:1;transform:translate(-162.3px,-87.8px)}58.7835%{opacity:1;transform:translate(-137.1px,-71.1px)}58.9732%{opacity:1;transform:translate(-113.8px,-52px)}59.1629%{opacity:1;transform:translate(-90.3px,-32.9px)}59.3527%{opacity:1;transform:translate(-64.8px,-16.2px)}59.5424%{opacity:1;transform:translate(-35.4px,-4.5px)}59.7321%{opacity:1;transform:translate(0px,0px)}60.2679%{opacity:0;transform:translate(0px,0px)}100%{opacity:0;transform:translate(0px,0px)}}
+#s5-d2{animation-name:k-s5-d2}@keyframes k-s5-d2{0%{opacity:0;transform:translate(-226px,0px)}58.2143%{opacity:0;transform:translate(-226px,0px)}58.4821%{opacity:1;transform:translate(-226px,0px)}58.6719%{opacity:1;transform:translate(-191.3px,0px)}58.8616%{opacity:1;transform:translate(-162.3px,0px)}59.0513%{opacity:1;transform:translate(-137.1px,0px)}59.2411%{opacity:1;transform:translate(-113.8px,0px)}59.4308%{opacity:1;transform:translate(-90.3px,0px)}59.6205%{opacity:1;transform:translate(-64.8px,0px)}59.8103%{opacity:1;transform:translate(-35.4px,0px)}60%{opacity:1;transform:translate(0px,0px)}60.5357%{opacity:0;transform:translate(0px,0px)}100%{opacity:0;transform:translate(0px,0px)}}
+#s5-d3{animation-name:k-s5-d3}@keyframes k-s5-d3{0%{opacity:0;transform:translate(-226px,52px)}58.4821%{opacity:0;transform:translate(-226px,52px)}58.75%{opacity:1;transform:translate(-226px,52px)}58.9397%{opacity:1;transform:translate(-191.3px,49.8px)}59.1295%{opacity:1;transform:translate(-162.3px,43.9px)}59.3192%{opacity:1;transform:translate(-137.1px,35.5px)}59.5089%{opacity:1;transform:translate(-113.8px,26px)}59.6987%{opacity:1;transform:translate(-90.3px,16.5px)}59.8884%{opacity:1;transform:translate(-64.8px,8.1px)}60.0781%{opacity:1;transform:translate(-35.4px,2.2px)}60.2679%{opacity:1;transform:translate(0px,0px)}60.8036%{opacity:0;transform:translate(0px,0px)}100%{opacity:0;transform:translate(0px,0px)}}
+#s5-ar{animation-name:k-s5-ar}@keyframes k-s5-ar{0%{opacity:0;transform:translate(-8px,0px)}59.8214%{opacity:0;transform:translate(-8px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}60.5357%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s5-tot{animation-name:k-s5-tot}@keyframes k-s5-tot{0%{opacity:0;transform:translate(-12px,0px)}60.1786%{opacity:0;transform:translate(-12px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}61.4286%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#sp6{animation-name:k-sp6}@keyframes k-sp6{0%{opacity:0;transform:translate(0px,4px)}72.3214%{opacity:0;transform:translate(0px,4px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}73.5714%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s6-d0{animation-name:k-s6-d0}@keyframes k-s6-d0{0%{opacity:0;transform:translate(-214px,-69px)}72.2321%{opacity:0;transform:translate(-214px,-69px)}72.5%{opacity:1;transform:translate(-214px,-69px)}72.7009%{opacity:1;transform:translate(-174px,-66px)}72.9018%{opacity:1;transform:translate(-141.5px,-58.2px)}73.1027%{opacity:1;transform:translate(-114.5px,-47.2px)}73.3036%{opacity:1;transform:translate(-91.2px,-34.5px)}73.5045%{opacity:1;transform:translate(-70px,-21.8px)}73.7054%{opacity:1;transform:translate(-48.9px,-10.8px)}73.9062%{opacity:1;transform:translate(-26.2px,-3px)}74.1071%{opacity:1;transform:translate(0px,0px)}74.6429%{opacity:0;transform:translate(0px,0px)}100%{opacity:0;transform:translate(0px,0px)}}
+#s6-d1{animation-name:k-s6-d1}@keyframes k-s6-d1{0%{opacity:0;transform:translate(-220px,66px)}72.4107%{opacity:0;transform:translate(-220px,66px)}72.6786%{opacity:1;transform:translate(-220px,66px)}72.8795%{opacity:1;transform:translate(-178.1px,63.2px)}73.0804%{opacity:1;transform:translate(-144px,55.7px)}73.2812%{opacity:1;transform:translate(-115.9px,45.1px)}73.4821%{opacity:1;transform:translate(-92px,33px)}73.683%{opacity:1;transform:translate(-70.3px,20.9px)}73.8839%{opacity:1;transform:translate(-49px,10.3px)}74.0848%{opacity:1;transform:translate(-26.2px,2.8px)}74.2857%{opacity:1;transform:translate(0px,0px)}74.8214%{opacity:0;transform:translate(0px,0px)}100%{opacity:0;transform:translate(0px,0px)}}
+#s6-ar{animation-name:k-s6-ar}@keyframes k-s6-ar{0%{opacity:0;transform:translate(-6px,0px)}74.1071%{opacity:0;transform:translate(-6px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}74.8214%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s6-o0{animation-name:k-s6-o0}@keyframes k-s6-o0{0%{opacity:0;transform:translate(-8px,0px)}74.4643%{opacity:0;transform:translate(-8px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}75.5357%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s6-o1{animation-name:k-s6-o1}@keyframes k-s6-o1{0%{opacity:0;transform:translate(-8px,0px)}75.0893%{opacity:0;transform:translate(-8px,0px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}76.1607%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#sp7{animation-name:k-sp7}@keyframes k-sp7{0%{opacity:0;transform:translate(0px,4px)}86.6071%{opacity:0;transform:translate(0px,4px);animation-timing-function:cubic-bezier(.22,.61,.36,1)}87.8571%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#s7-dot{animation-name:k-s7-dot}@keyframes k-s7-dot{0%{opacity:1;transform:translate(-560px,0px)}86.6071%{opacity:1;transform:translate(-560px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}88.2143%{opacity:1;transform:translate(-280px,0px)}88.5714%{opacity:1;transform:translate(-280px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}90.1786%{opacity:1;transform:translate(0px,0px)}100%{opacity:1;transform:translate(0px,0px)}}
+#pg-bar{animation-name:k-pg-bar}@keyframes k-pg-bar{0%{transform:scaleX(0)}14.2857%{transform:scaleX(0);animation-timing-function:cubic-bezier(.45,0,.25,1)}15.3571%{transform:scaleX(0.2)}28.5714%{transform:scaleX(0.2);animation-timing-function:cubic-bezier(.45,0,.25,1)}29.6429%{transform:scaleX(0.4)}42.8571%{transform:scaleX(0.4);animation-timing-function:cubic-bezier(.45,0,.25,1)}43.9286%{transform:scaleX(0.6)}57.1429%{transform:scaleX(0.6);animation-timing-function:cubic-bezier(.45,0,.25,1)}58.2143%{transform:scaleX(0.8)}71.4286%{transform:scaleX(0.8);animation-timing-function:cubic-bezier(.45,0,.25,1)}72.5%{transform:scaleX(1)}85.7143%{transform:scaleX(1)}100%{transform:scaleX(1)}}
+#pg-dot{animation-name:k-pg-dot}@keyframes k-pg-dot{0%{transform:translate(-120px,0px)}14.2857%{transform:translate(-120px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}15.3571%{transform:translate(-96px,0px)}28.5714%{transform:translate(-96px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}29.6429%{transform:translate(-72px,0px)}42.8571%{transform:translate(-72px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}43.9286%{transform:translate(-48px,0px)}57.1429%{transform:translate(-48px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}58.2143%{transform:translate(-24px,0px)}71.4286%{transform:translate(-24px,0px);animation-timing-function:cubic-bezier(.45,0,.25,1)}72.5%{transform:translate(0px,0px)}100%{transform:translate(0px,0px)}}
+#scene-1{animation-name:k-scene-1}@keyframes k-scene-1{0%{opacity:1}13.5714%{opacity:1}14.2857%{opacity:0}100%{opacity:0}}
+#scene-2{animation-name:k-scene-2}@keyframes k-scene-2{0%{opacity:0}14.2857%{opacity:0}15%{opacity:1}27.8571%{opacity:1}28.5714%{opacity:0}100%{opacity:0}}
+#scene-3{animation-name:k-scene-3}@keyframes k-scene-3{0%{opacity:0}28.5714%{opacity:0}29.2857%{opacity:1}42.1429%{opacity:1}42.8571%{opacity:0}100%{opacity:0}}
+#scene-4{animation-name:k-scene-4}@keyframes k-scene-4{0%{opacity:0}42.8571%{opacity:0}43.5714%{opacity:1}56.4286%{opacity:1}57.1429%{opacity:0}100%{opacity:0}}
+#scene-5{animation-name:k-scene-5}@keyframes k-scene-5{0%{opacity:0}57.1429%{opacity:0}57.8571%{opacity:1}70.7143%{opacity:1}71.4286%{opacity:0}100%{opacity:0}}
+#scene-6{animation-name:k-scene-6}@keyframes k-scene-6{0%{opacity:0}71.4286%{opacity:0}72.1429%{opacity:1}85%{opacity:1}85.7143%{opacity:0}100%{opacity:0}}
+#scene-7{animation-name:k-scene-7}@keyframes k-scene-7{0%{opacity:0}85.7143%{opacity:0}86.4286%{opacity:1}100%{opacity:1}}
+/* Reduced motion: no movement; the conclusion is shown as a complete still. */
+@media (prefers-reduced-motion:reduce){.a{animation:none!important}.scene{opacity:0!important}#scene-7{opacity:1!important}}
 </style>
-<defs>
-<radialGradient id="bg" cx="50%" cy="38%" r="75%">
-<stop offset="0" stop-color="#0d1a1b"/>
-<stop offset="1" stop-color="#060909"/>
-</radialGradient>
-<marker id="ah-m" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto">
-<path d="M0,0 L10,5 L0,10 Z" fill="#4ee3b5"/>
-</marker>
-<marker id="ah-c" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto">
-<path d="M0,0 L10,5 L0,10 Z" fill="#38d0f0"/>
-</marker>
-<marker id="ah-g" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
-<path d="M0,0 L10,5 L0,10 Z" fill="#5b7379"/>
-</marker>
-<g id="machine">
-  <polygon points="0,26 22,6 184,6 162,26" fill="#1c2c30" stroke="#354d54" stroke-linejoin="round"/>
-  <polygon points="162,26 184,6 184,112 162,132" fill="#0c1416" stroke="#354d54" stroke-linejoin="round"/>
-  <rect x="0" y="26" width="162" height="106" rx="6" fill="#142226" stroke="#354d54"/>
-  <rect x="12" y="38" width="88" height="62" rx="4" fill="#082227" stroke="#38d0f0" stroke-width="1.4"/>
-  <g fill="#0a1114" stroke="#3a5058" stroke-width=".8">
-    <rect x="110" y="40" width="12" height="9" rx="2"/>
-<rect x="126" y="40" width="12" height="9" rx="2"/>
-<rect x="142" y="40" width="12" height="9" rx="2"/>
-    <rect x="110" y="54" width="12" height="9" rx="2"/>
-<rect x="126" y="54" width="12" height="9" rx="2"/>
-<rect x="142" y="54" width="12" height="9" rx="2"/>
-    <rect x="110" y="68" width="12" height="9" rx="2"/>
-<rect x="126" y="68" width="12" height="9" rx="2"/>
-<rect x="142" y="68" width="12" height="9" rx="2"/>
-  </g>
-  <rect x="110" y="86" width="44" height="12" rx="3" fill="#4ee3b5"/>
-  <rect x="22" y="112" width="68" height="7" rx="3" fill="#050809" stroke="#4ee3b5"/>
-</g>
-<g id="offline">
-  <rect width="106" height="26" rx="13" fill="#071012" stroke="#38d0f0" stroke-width="1.3"/>
-  <path d="M11,16 q8,-8 16,0 M15,19.5 q4,-4 8,0" stroke="#38d0f0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-  <line x1="10" y1="22" x2="28" y2="7" stroke="#38d0f0" stroke-width="1.8" stroke-linecap="round"/>
-  <text x="36" y="18" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;font-weight:700;fill:#38d0f0">OFFLINE</text>
-</g>
-<g id="cube" stroke="#4ee3b5" stroke-width="1.4" stroke-linejoin="round">
-  <polygon points="35,0 70,18 35,36 0,18" fill="#1d4a42"/>
-  <polygon points="0,18 35,36 35,78 0,60" fill="#10302b"/>
-  <polygon points="35,36 70,18 70,60 35,78" fill="#0b231f"/>
-</g>
-<g id="cube-hot" stroke="#c9fbea" stroke-width="1.4" stroke-linejoin="round">
-  <polygon points="35,0 70,18 35,36 0,18" fill="#4ee3b5"/>
-  <polygon points="0,18 35,36 35,78 0,60" fill="#25a382"/>
-  <polygon points="35,36 70,18 70,60 35,78" fill="#167257"/>
-</g>
-<g id="cube-pend" fill="none" stroke="#4ee3b5" stroke-width="1.6" stroke-dasharray="4 4" stroke-linejoin="round">
-  <polygon points="35,0 70,18 35,36 0,18"/>
-<polygon points="0,18 35,36 35,78 0,60"/>
-<polygon points="35,36 70,18 70,60 35,78"/>
-</g>
-<g id="link" fill="#081210" stroke="#4ee3b5" stroke-width="2.6">
-  <rect x="3" y="-6" width="18" height="12" rx="6"/>
-<rect x="13" y="-6" width="18" height="12" rx="6"/>
-</g>
-<g id="lock">
-  <path d="M5,11 V7 a6,6 0 0 1 12,0 V11" fill="none" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round"/>
-  <rect x="1" y="11" width="20" height="15" rx="3" fill="#4ee3b5"/>
-<circle cx="11" cy="18" r="2.2" fill="#062019"/>
-</g>
-<g id="lock-open">
-  <path d="M5,11 V7 a6,6 0 0 1 12,0" fill="none" stroke="#38d0f0" stroke-width="2.6" stroke-linecap="round" transform="translate(9,-3)"/>
-  <rect x="1" y="11" width="20" height="15" rx="3" fill="#38d0f0"/>
-<circle cx="11" cy="18" r="2.2" fill="#062019"/>
-</g>
-<g id="ok">
-<circle r="13" fill="#4ee3b5"/>
-<path d="M-6,0 l4,4.5 l8,-9" fill="none" stroke="#04110d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-</g>
-<g id="ok-s">
-<circle cx="9" cy="9" r="9" fill="#4ee3b5"/>
-<path d="M5,9 l3,3 l5,-6" fill="none" stroke="#04110d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-</g>
-<g id="no-s">
-<circle cx="9" cy="9" r="9" fill="#ff8a80"/>
-<path d="M5.5,5.5 l7,7 M12.5,5.5 l-7,7" stroke="#200606" stroke-width="2.4" stroke-linecap="round"/>
-</g>
-<g id="key" fill="none" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round">
-  <circle cx="7" cy="0" r="6"/>
-<path d="M13,0 H27 M22,0 V6 M27,0 V5"/>
-</g>
-<g id="key-chip">
-<circle r="11" fill="#4ee3b5"/>
-<circle cx="-3" cy="0" r="3.4" fill="none" stroke="#04110d" stroke-width="2"/>
-<path d="M0.5,0 H7 M5,0 V3" stroke="#04110d" stroke-width="2" stroke-linecap="round"/>
-</g>
-<g id="again">
-<path d="M7,-12.1 A14,14 0 1 1 -7,-12.1" fill="none" stroke="#38d0f0" stroke-width="2.8" stroke-linecap="round" marker-end="url(#ah-c)"/>
-</g>
-<g id="mag">
-<circle cx="11" cy="11" r="9" fill="none" stroke="#38d0f0" stroke-width="2.6"/>
-<line x1="18" y1="18" x2="26" y2="26" stroke="#38d0f0" stroke-width="3" stroke-linecap="round"/>
-</g>
-<g id="verifier">
-  <rect x="0" y="0" width="150" height="100" rx="8" fill="#0d1a1e" stroke="#38d0f0" stroke-width="2"/>
-  <rect x="10" y="10" width="130" height="80" rx="4" fill="#071316"/>
-  <rect x="20" y="22" width="58" height="6" rx="3" fill="#2c4b52"/>
-<rect x="20" y="36" width="44" height="6" rx="3" fill="#2c4b52"/>
-<rect x="20" y="50" width="52" height="6" rx="3" fill="#2c4b52"/>
-  <circle cx="104" cy="44" r="20" fill="none" stroke="#38d0f0" stroke-width="3.4"/>
-  <path d="M95,44 l6,6 l11,-12" fill="none" stroke="#4ee3b5" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="118" y1="58" x2="130" y2="70" stroke="#38d0f0" stroke-width="4" stroke-linecap="round"/>
-  <path d="M60,100 L54,116 H96 L90,100" fill="#0d1a1e" stroke="#38d0f0" stroke-width="2" stroke-linejoin="round"/>
-</g>
-</defs>
+<defs><radialGradient id="bg" cx="50%" cy="42%" r="78%"><stop offset="0" stop-color="#1B1B1C"/><stop offset="1" stop-color="#131314"/></radialGradient></defs>
 <rect width="1000" height="600" fill="url(#bg)"/>
-<g id="chrome">
-<text x="40" y="38" class="brand">URNA ABERTA</text>
-<text x="184" y="38" class="brands">· protótipo educacional</text>
-<rect x="540" y="18" width="120" height="28" rx="14" fill="none" stroke="#2c4046" stroke-width="1.4"/>
-<text x="600.0" y="37" class="map mid" style="fill:#8aa1a6">urna offline</text>
-<g id="map-1" class="a maplit">
-<rect x="540" y="18" width="120" height="28" rx="14" fill="#4ee3b5"/>
-<text x="600.0" y="37" class="map mid" style="fill:#04110d">urna offline</text>
-</g>
-<path d="M668,32 h12" stroke="#5b7379" stroke-width="2" marker-end="url(#ah-g)"/>
-<rect x="690" y="18" width="128" height="28" rx="14" fill="none" stroke="#2c4046" stroke-width="1.4"/>
-<text x="754.0" y="37" class="mapb mid" style="fill:#8aa1a6">BLOCKCHAIN</text>
-<g id="map-2" class="a maplit">
-<rect x="690" y="18" width="128" height="28" rx="14" fill="#4ee3b5"/>
-<text x="754.0" y="37" class="mapb mid" style="fill:#04110d">BLOCKCHAIN</text>
-</g>
-<path d="M826,32 h12" stroke="#5b7379" stroke-width="2" marker-end="url(#ah-g)"/>
-<rect x="848" y="18" width="112" height="28" rx="14" fill="none" stroke="#2c4046" stroke-width="1.4"/>
-<text x="904.0" y="37" class="map mid" style="fill:#8aa1a6">verificador</text>
-<g id="map-3" class="a maplit">
-<rect x="848" y="18" width="112" height="28" rx="14" fill="#38d0f0"/>
-<text x="904.0" y="37" class="map mid" style="fill:#04110d">verificador</text>
-</g>
-<line x1="40" y1="62" x2="960" y2="62" stroke="#2a3d43" stroke-width="1"/>
-<line x1="40" y1="552" x2="960" y2="552" stroke="#2a3d43" stroke-width="1"/>
-</g>
-<g id="scene-1" class="scene a" data-start="0" data-end="8">
-<text x="40" y="98" class="k">1/7 · A IDEIA</text>
-<text x="40" y="140" class="h">Não é só votar. É poder conferir depois.</text>
-<text x="40" y="174" class="s">Uma proposta: urna offline + BLOCKCHAIN pública + verificador independente.</text>
-<text x="40" y="580" class="f">O Boletim de Urna mostra totais da seção. Aqui, o recibo permite conferir a inclusão da cédula.</text>
-<use href="#offline" transform="translate(102,198)"/>
-<use href="#machine" transform="translate(64,226)"/>
-<use href="#lock" transform="translate(111,280) scale(1.3)"/>
-<text x="156" y="394" class="l mid">URNA OFFLINE</text>
-<text x="156" y="418" class="fn mid">cifra o voto</text>
-<text x="306" y="288" class="m mid">lote assinado</text>
-<line x1="262" y1="300" x2="352" y2="300" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<text x="500" y="262" class="mega mid">BLOCKCHAIN</text>
-<use href="#cube" transform="translate(361,282) scale(1.0)"/>
-<text x="396.0" y="304.0" class="cubel mid">#1</text>
-<line x1="431.0" y1="322.0" x2="465.0" y2="322.0" stroke="#4ee3b5" stroke-width="2"/>
-<use href="#link" transform="translate(431.0,322.0) scale(1.0)"/>
-<use href="#cube" transform="translate(465,282) scale(1.0)"/>
-<text x="500.0" y="304.0" class="cubel mid">#2</text>
-<line x1="535.0" y1="322.0" x2="569.0" y2="322.0" stroke="#4ee3b5" stroke-width="2"/>
-<use href="#link" transform="translate(535.0,322.0) scale(1.0)"/>
-<use href="#cube-hot" transform="translate(569,282) scale(1.0)"/>
-<text x="604.0" y="304.0" class="cubel mid">#3</text>
-<text x="500" y="394" class="l mid">mural público</text>
-<text x="500" y="418" class="fn mid">registra os lotes</text>
-<text x="694" y="288" class="m mid">cópia pública</text>
-<line x1="648" y1="300" x2="738" y2="300" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<use href="#verifier" transform="translate(772,232)"/>
-<text x="847" y="394" class="l mid cyan">VERIFICADOR PÚBLICO</text>
-<text x="847" y="418" class="fn mid cyan">confere e recalcula</text>
-<path d="M156,434 V470 H847 V440" fill="none" stroke="#38d0f0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#ah-c)" class="a flow"/>
-<text x="500" y="520" class="rc mid">o recibo R7 fica com você e volta ao verificador</text>
-<g id="s1-chip" class="a">
-<g transform="translate(176,446)">
-<path d="M0,0 H40 V44 l-5,5 l-5,-5 l-5,5 l-5,-5 l-5,5 l-5,-5 l-5,5 l-5,-5 Z" fill="#e9f2ef"/>
-<rect width="40" height="4" fill="#38d0f0"/>
-<text x="20" y="32" class="rmini mid">R7</text>
-</g>
-</g>
-</g>
-<g id="scene-2" class="scene a" data-start="8" data-end="16" opacity="0">
-<text x="40" y="98" class="k">2/7 · NA URNA, SEM INTERNET</text>
-<text x="40" y="140" class="h">A urna cifra seu voto e imprime o recibo R7.</text>
-<text x="40" y="174" class="s">O recibo sai antes da sua decisão e não mostra o candidato.</text>
-<text x="40" y="580" class="f">Exemplo ilustrativo · R7 é um código simbólico: localiza a cédula, não identifica você.</text>
-<g id="s2-mach" class="a">
-<use href="#offline" transform="translate(86,198)"/>
-<use href="#machine" transform="translate(48,226)"/>
-<text x="104" y="312" class="screen mid">B</text>
-<text x="140" y="394" class="l2 mid">1 · você escolhe B</text>
-</g>
-<g id="s2-enc" class="a">
-<line x1="254" y1="256" x2="326" y2="256" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<text x="290" y="284" class="m mid mint">2 · cifra</text>
-</g>
-<g id="s2-card" class="a">
-<g transform="translate(336,206)">
-<rect width="180" height="100" rx="10" fill="#0e1d20" stroke="#4ee3b5" stroke-width="1.8"/>
-<text x="14" y="26" class="tag mint">CÉDULA CIFRADA</text>
-<use href="#lock" transform="translate(16,42) scale(1.25)"/>
-<rect x="50" y="46" width="56" height="7" rx="3" fill="#2a5650"/>
-<rect x="50" y="60" width="40" height="7" rx="3" fill="#2a5650"/>
-<rect x="50" y="74" width="50" height="7" rx="3" fill="#2a5650"/>
-<rect x="116" y="46" width="50" height="36" rx="7" fill="#0a2328" stroke="#38d0f0" stroke-width="1.8"/>
-<text x="141" y="71" class="code mid cyan">R7</text>
-</g>
-</g>
-<g id="s2-print" class="a">
-<path d="M214,354 C240,410 272,424 326,424" fill="none" stroke="#38d0f0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#ah-c)" class="a flow"/>
-<text x="326" y="470" class="m end cyan">3 · imprime o recibo</text>
-<g transform="translate(336,326)">
-<path d="M0,0 H170 V187 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 Z" fill="#e9f2ef" stroke="#bcd3cd" stroke-width="1"/>
-<rect x="0" y="0" width="170" height="6" fill="#38d0f0"/>
-<text x="85.0" y="32" class="rk mid">RECIBO</text>
-<line x1="14" y1="44" x2="156" y2="44" stroke="#b6c9c4" stroke-dasharray="4 4"/>
-<text x="85.0" y="96" class="rbig mid">R7</text>
-<use href="#ok-s" transform="translate(16,114)"/>
-<text x="38" y="130" class="rs">assinado pela urna</text>
-<text x="16" y="158" class="rs">candidato:</text>
-<text x="16" y="178" class="rsb">não aparece</text>
-</g>
-</g>
-<g id="s2-same" class="a">
-<path d="M508,271 H552 V408 H524" fill="none" stroke="#38d0f0" stroke-width="2.4" stroke-dasharray="5 5"/>
-<text x="562" y="346" class="l2 cyan">mesmo R7</text>
-</g>
-<g id="s2-choice" class="a">
-<text x="660" y="236" class="l">4 · agora você escolhe:</text>
-<rect x="660" y="256" width="290" height="74" rx="14" fill="#4ee3b5"/>
-<text x="805" y="290" class="btn mid" style="fill:#04110d">CONFIRMAR</text>
-<text x="805" y="316" class="m mid" style="fill:#06231b">conta este voto</text>
-<rect x="661.2" y="349.2" width="287.6" height="71.6" rx="14" fill="none" stroke="#38d0f0" stroke-width="2.4"/>
-<text x="805" y="382" class="btn mid cyan">TESTAR</text>
-<text x="805" y="408" class="m mid cyan">abre, confere e anula</text>
-</g>
-</g>
-<g id="scene-3" class="scene a" data-start="16" data-end="24" opacity="0">
-<text x="40" y="98" class="k">3/7 · CONFIRMAR OU TESTAR</text>
-<text x="40" y="140" class="h">CONFIRMAR guarda o R7 cifrado para a apuração.</text>
-<text x="40" y="174" class="s">TESTAR é a alternativa: abre a escolha, anula essa cédula e você vota de novo.</text>
-<text x="40" y="580" class="f">Testar ajuda a flagrar uma urna que mente, mas não garante pegar toda fraude.</text>
-<g id="s3-a1" class="a">
-<text x="40" y="218" class="k">NOSSA HISTÓRIA: CONFIRMAR</text>
-<g transform="translate(40,232)">
-<rect width="140" height="80" rx="10" fill="#0e1d20" stroke="#4ee3b5" stroke-width="1.8"/>
-<use href="#lock" transform="translate(18,24) scale(1.3)"/>
-<rect x="64" y="22" width="56" height="36" rx="7" fill="#0a2328" stroke="#38d0f0" stroke-width="1.8"/>
-<text x="92" y="47" class="code mid cyan">R7</text>
-</g>
-</g>
-<g id="s3-a2" class="a">
-<line x1="186" y1="272" x2="226" y2="272" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<rect x="234" y="244" width="180" height="56" rx="28" fill="#4ee3b5"/>
-<text x="324" y="279" class="pill mid" style="fill:#04110d">CONFIRMAR</text>
-</g>
-<g id="s3-a3" class="a">
-<line x1="420" y1="272" x2="460" y2="272" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<g transform="translate(468,232)">
-<rect width="190" height="80" rx="10" fill="#0e1d20" stroke="#4ee3b5" stroke-width="1.8"/>
-<use href="#lock" transform="translate(16,22) scale(1.4)"/>
-<text x="60" y="40" class="code cyan">R7</text>
-<text x="60" y="63" class="sm mint">continua cifrada</text>
-</g>
-</g>
-<g id="s3-a4" class="a">
-<line x1="664" y1="272" x2="704" y2="272" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<use href="#ok" transform="translate(728,272)"/>
-<text x="752" y="268" class="l">vai para a apuração</text>
-<text x="752" y="292" class="m">conta sem ser aberta</text>
-</g>
-<g id="s3-b" class="a">
-<rect x="32" y="350" width="936" height="188" rx="14" fill="#0a1214" stroke="#3b5258" stroke-width="1.4" stroke-dasharray="6 6"/>
-<text x="52" y="380" class="k cyan">ALTERNATIVA: SE VOCÊ TESTAR</text>
-<rect x="53.2" y="405.2" width="157.6" height="49.6" rx="25" fill="none" stroke="#38d0f0" stroke-width="2.4"/>
-<text x="132" y="437" class="pill mid cyan">TESTAR</text>
-<line x1="218" y1="430" x2="254" y2="430" stroke="#38d0f0" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-c)"/>
-<g transform="translate(262,388)">
-<rect width="190" height="96" rx="10" fill="#101b1e" stroke="#38d0f0" stroke-width="1.6"/>
-<use href="#lock-open" transform="translate(14,30) scale(1.3)"/>
-<text x="56" y="44" class="l">escolha: B</text>
-<text x="56" y="72" class="m cyan">você confere</text>
-</g>
-<line x1="458" y1="430" x2="494" y2="430" stroke="#38d0f0" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-c)"/>
-<g transform="rotate(-6 586 428)">
-<rect x="502" y="402" width="168" height="52" rx="8" fill="none" stroke="#ff8a80" stroke-width="3"/>
-<text x="586" y="437" class="stamp mid">ANULADA</text>
-</g>
-<text x="586" y="490" class="m mid red">não entra na apuração</text>
-<line x1="684" y1="430" x2="720" y2="430" stroke="#38d0f0" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-c)"/>
-<use href="#again" transform="translate(746,430)"/>
-<text x="780" y="426" class="l">vota de novo</text>
-<text x="780" y="450" class="m">nova cédula,</text>
-<text x="780" y="470" class="m">novo recibo</text>
-</g>
-</g>
-<g id="scene-4" class="scene a" data-start="24" data-end="32" opacity="0">
-<text x="40" y="98" class="k">4/7 · ENCERRAMENTO: LOTE → BLOCKCHAIN</text>
-<text x="40" y="140" class="h">A urna assina um lote e envia uma transação.</text>
-<text x="40" y="174" class="s">O contrato Solidity aceita só urna registrada, um lote, dentro do prazo.</text>
-<text x="40" y="580" class="f">Os votos sobem em lote, só após o encerramento, não um a um. O recibo fica com você.</text>
-<g id="s4-batch" class="a">
-<rect x="40" y="206" width="220" height="300" rx="12" fill="#0d1618" stroke="#4ee3b5" stroke-width="1.8"/>
-<text x="56" y="236" class="l2 mint">LOTE · URNA 1</text>
-<text x="56" y="258" class="sm">votação encerrada</text>
-<rect x="52" y="278" width="196" height="34" rx="6" fill="#0d1719" stroke="#22343a" stroke-width="1"/>
-<use href="#lock" transform="translate(62,285) scale(0.85)"/>
-<text x="94" y="302" class="code2">R2</text>
-<rect x="52" y="320" width="196" height="34" rx="6" fill="#0d1719" stroke="#22343a" stroke-width="1"/>
-<use href="#lock" transform="translate(62,327) scale(0.85)"/>
-<text x="94" y="344" class="code2">R5</text>
-<rect x="52" y="362" width="196" height="34" rx="6" fill="#0b2a30" stroke="#38d0f0" stroke-width="2"/>
-<use href="#lock" transform="translate(62,369) scale(0.85)"/>
-<text x="94" y="386" class="code2 cyan">R7</text>
-<text x="236" y="385" class="sm end cyan">seu</text>
-<rect x="52" y="404" width="196" height="34" rx="6" fill="#0d1719" stroke="#22343a" stroke-width="1"/>
-<use href="#lock" transform="translate(62,411) scale(0.85)"/>
-<text x="94" y="428" class="code2">R9</text>
-<use href="#ok-s" transform="translate(54,456)"/>
-<text x="78" y="472" class="sm mint">assinado pela urna</text>
-</g>
-<line x1="262" y1="360" x2="432" y2="360" stroke="#38d0f0" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-c)" class="a flow"/>
-<g id="s4-tx" class="a">
-<rect x="266" y="318" width="150" height="34" rx="17" fill="#38d0f0"/>
-<text x="341" y="340" class="tag mid" style="fill:#03161b">TRANSAÇÃO</text>
-</g>
-<g id="s4-panel" class="a">
-<rect x="440" y="206" width="520" height="330" rx="14" fill="#0a1315" stroke="#4ee3b5" stroke-width="2"/>
-<text x="460" y="246"><tspan class="big2">BLOCKCHAIN</tspan><tspan class="m" dx="10">· contrato Solidity</tspan></text>
-<rect x="458" y="262" width="270" height="150" rx="10" fill="#0f1d20" stroke="#38d0f0" stroke-width="1.6"/>
-<text x="474" y="288" class="code3 cyan">postBatch()</text>
-<text x="500" y="324" class="m2">assinatura de urna registrada</text>
-<text x="500" y="356" class="m2">um lote por urna</text>
-<text x="500" y="388" class="m2">antes do prazo</text>
-<text x="746" y="288" class="tag red">RECUSA</text>
-<use href="#no-s" transform="translate(748,304)"/>
-<text x="774" y="320" class="m2">assinatura inválida</text>
-<use href="#no-s" transform="translate(748,340)"/>
-<text x="774" y="356" class="m2">segundo lote</text>
-<use href="#no-s" transform="translate(748,376)"/>
-<text x="774" y="392" class="m2">fora do prazo</text>
-<use href="#cube" transform="translate(470,438) scale(1.0)"/>
-<text x="505.0" y="460.0" class="cubel mid">#1</text>
-<line x1="540.0" y1="478.0" x2="574.0" y2="478.0" stroke="#4ee3b5" stroke-width="2"/>
-<use href="#link" transform="translate(540.0,478.0) scale(1.0)"/>
-<use href="#cube" transform="translate(574,438) scale(1.0)"/>
-<text x="609.0" y="460.0" class="cubel mid">#2</text>
-<line x1="644" y1="478" x2="678" y2="478" stroke="#4ee3b5" stroke-width="2"/>
-<use href="#link" transform="translate(644,478)"/>
-<use href="#cube-pend" transform="translate(678,438)"/>
-<text x="762" y="462" class="l2">#3 · lote da urna 1</text>
-<text x="762" y="484" class="sm cyan">R7 está aqui, cifrado</text>
-<text x="762" y="510" class="xs">demo: 1 nó local (Anvil)</text>
-</g>
-<g id="s4-checks" class="a">
-<use href="#ok-s" transform="translate(474,309)"/>
-<use href="#ok-s" transform="translate(474,341)"/>
-<use href="#ok-s" transform="translate(474,373)"/>
-</g>
-<g id="s4-new" class="a">
-<use href="#cube-hot" transform="translate(678,438)"/>
-<text x="713" y="460" class="cubel mid">#3</text>
-<path d="M700,414 V432" fill="none" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#ah-m)"/>
-</g>
-</g>
-<g id="scene-5" class="scene a" data-start="32" data-end="40" opacity="0">
-<text x="40" y="98" class="k">5/7 · GUARDIÕES ABREM SÓ O TOTAL</text>
-<text x="40" y="140" class="h">3 de 5 guardiões ajudam a abrir a soma.</text>
-<text x="40" y="174" class="s">Cada guardião tem parte da chave. Publica sua contribuição e prova na blockchain.</text>
-<text x="40" y="580" class="f">Regra do protocolo e da API, não imunidade: 3 guardiões em conluio poderiam abrir votos.</text>
-<g id="s5-tr" class="a">
-<text x="40" y="214" class="k">GUARDIÕES · 3 DE 5</text>
-<circle cx="60" cy="300" r="19" fill="#0f2a26" stroke="#4ee3b5" stroke-width="2"/>
-<use href="#key" transform="translate(48,300)"/>
-<text x="90" y="297" class="l2">T1</text>
-<text x="90" y="316" class="sm mint">parte + prova</text>
-<circle cx="60" cy="350" r="19" fill="#0f2a26" stroke="#4ee3b5" stroke-width="2"/>
-<use href="#key" transform="translate(48,350)"/>
-<text x="90" y="347" class="l2">T2</text>
-<text x="90" y="366" class="sm mint">parte + prova</text>
-<circle cx="60" cy="400" r="19" fill="#0f2a26" stroke="#4ee3b5" stroke-width="2"/>
-<use href="#key" transform="translate(48,400)"/>
-<text x="90" y="397" class="l2">T3</text>
-<text x="90" y="416" class="sm mint">parte + prova</text>
-<g opacity=".5">
-<circle cx="60" cy="450" r="19" fill="#121a1c" stroke="#3b5258" stroke-width="2"/>
-<use href="#key" transform="translate(48,450)"/>
-<text x="90" y="447" class="l2">T4</text>
-<text x="90" y="466" class="sm">não precisa</text>
-</g>
-<g opacity=".5">
-<circle cx="60" cy="500" r="19" fill="#121a1c" stroke="#3b5258" stroke-width="2"/>
-<use href="#key" transform="translate(48,500)"/>
-<text x="90" y="497" class="l2">T5</text>
-<text x="90" y="516" class="sm">não precisa</text>
-</g>
-</g>
-<g id="s5-chain" class="a">
-<text x="290" y="214" class="k">BLOCKCHAIN</text>
-<rect x="290" y="226" width="330" height="200" rx="14" fill="#0a1315" stroke="#4ee3b5" stroke-width="2"/>
-<line x1="326" y1="262" x2="326" y2="392" stroke="#4ee3b5" stroke-width="2"/>
-<use href="#cube" transform="translate(307,229) scale(0.55)"/>
-<text x="354" y="248" class="m2 mint">#3 · lote da urna 1</text>
-<use href="#cube-hot" transform="translate(307,279) scale(0.55)"/>
-<text x="354" y="298" class="m2">#4 · parte T1 + prova</text>
-<use href="#cube-hot" transform="translate(307,329) scale(0.55)"/>
-<text x="354" y="348" class="m2">#5 · parte T2 + prova</text>
-<use href="#cube-hot" transform="translate(307,379) scale(0.55)"/>
-<text x="354" y="398" class="m2">#6 · parte T3 + prova</text>
-</g>
-<line x1="204" y1="300" x2="282" y2="300" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<g id="s5-share1" class="a">
-<use href="#key-chip" transform="translate(214,300)"/>
-</g>
-<line x1="204" y1="350" x2="282" y2="350" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<g id="s5-share2" class="a">
-<use href="#key-chip" transform="translate(214,350)"/>
-</g>
-<line x1="204" y1="400" x2="282" y2="400" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<g id="s5-share3" class="a">
-<use href="#key-chip" transform="translate(214,400)"/>
-</g>
-<line x1="624" y1="300" x2="652" y2="300" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<g id="s5-sum" class="a">
-<rect x="660" y="226" width="300" height="86" rx="12" fill="#0d1618" stroke="#4ee3b5" stroke-width="1.6"/>
-<use href="#lock" transform="translate(678,250) scale(1.4)"/>
-<text x="720" y="260" class="l2 mint">SOMA CIFRADA</text>
-<text x="720" y="284" class="sm">de todos os votos confirmados</text>
-<text x="720" y="302" class="sm">na blockchain, inclusive R7</text>
-<text x="678" y="344" class="l2">+ 3 partes publicadas =</text>
-<rect x="660" y="360" width="300" height="66" rx="12" fill="#0d2a24" stroke="#4ee3b5" stroke-width="2"/>
-<text x="678" y="384" class="tag mint">TOTAL</text>
-<text x="940" y="384" class="sm end">exemplo da demo</text>
-<text x="678" y="414" class="tot">A 2 · B 2 · C 2</text>
-</g>
-<g id="s5-note" class="a">
-<rect x="290" y="452" width="670" height="76" rx="12" fill="#0b1a1d" stroke="#38d0f0" stroke-width="1.4"/>
-<use href="#lock" transform="translate(312,476) scale(1.1)"/>
-<text x="346" y="484" class="l2">Só o total é aberto. Cada voto, inclusive R7, segue cifrado.</text>
-<text x="346" y="510" class="m">A API pública dos guardiões só gera partes do total auditado.</text>
-</g>
-</g>
-<g id="scene-6" class="scene a" data-start="40" data-end="48" opacity="0">
-<text x="40" y="98" class="k">6/7 · VOCÊ CONFERE</text>
-<text x="40" y="140" class="h">Um verificador independente confere o seu R7.</text>
-<text x="40" y="174" class="s">Ele lê a cópia pública da blockchain, acha R7 no lote assinado e refaz a conta.</text>
-<text x="40" y="580" class="f">R7 só localiza. Quem prova é o recibo assinado completo, conferido com as provas.</text>
-<g id="s6-rc" class="a">
-<text x="40" y="222" class="k cyan">VOCÊ ENTREGA</text>
-<g transform="translate(40,236)">
-<path d="M0,0 H170 V187 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 l-10.62,9 l-10.62,-9 Z" fill="#e9f2ef" stroke="#bcd3cd" stroke-width="1"/>
-<rect x="0" y="0" width="170" height="6" fill="#38d0f0"/>
-<text x="85.0" y="32" class="rk mid">RECIBO</text>
-<line x1="14" y1="44" x2="156" y2="44" stroke="#b6c9c4" stroke-dasharray="4 4"/>
-<text x="85.0" y="96" class="rbig mid">R7</text>
-<use href="#ok-s" transform="translate(16,114)"/>
-<text x="38" y="130" class="rs">assinado pela urna</text>
-<text x="16" y="158" class="rs">candidato:</text>
-<text x="16" y="178" class="rsb">não aparece</text>
-</g>
-<text x="125" y="462" class="sm mid">seu recibo completo</text>
-</g>
-<line x1="218" y1="336" x2="262" y2="336" stroke="#38d0f0" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-c)" class="a flow"/>
-<g id="s6-ver" class="a">
-<rect x="270" y="206" width="440" height="330" rx="14" fill="#0a1315" stroke="#38d0f0" stroke-width="2"/>
-<use href="#mag" transform="translate(288,222)"/>
-<text x="326" y="240" class="l2 cyan">VERIFICADOR INDEPENDENTE</text>
-<text x="326" y="262" class="sm">separado da urna e dos guardiões</text>
-<line x1="288" y1="278" x2="692" y2="278" stroke="#2a3d43"/>
-<rect x="284" y="334" width="412" height="40" rx="8" fill="#0b2a30" stroke="#38d0f0" stroke-width="1.6"/>
-<text x="324" y="312" class="m2">recibo R7 completo, assinatura válida</text>
-<text x="324" y="360" class="m2">R7 está no lote assinado da urna 1</text>
-<text x="324" y="408" class="m2">provas das cédulas e dos guardiões</text>
-<text x="324" y="456" class="m2">recontagem: A 2 · B 2 · C 2 = anunciado</text>
-</g>
-<g id="s6-ok1" class="a">
-<use href="#ok" transform="translate(302,306)"/>
-</g>
-<g id="s6-ok2" class="a">
-<use href="#ok" transform="translate(302,354)"/>
-</g>
-<g id="s6-ok3" class="a">
-<use href="#ok" transform="translate(302,402)"/>
-</g>
-<g id="s6-ok4" class="a">
-<use href="#ok" transform="translate(302,450)"/>
-</g>
-<g id="s6-pass" class="a">
-<rect x="288" y="492" width="404" height="32" rx="8" fill="#4ee3b5"/>
-<text x="490" y="514" class="tag mid" style="fill:#04110d">TUDO CONFERE</text>
-</g>
-<g id="s6-src" class="a">
-<text x="850" y="226" class="l2 mid mint">BLOCKCHAIN</text>
-<use href="#cube" transform="translate(780,238) scale(0.6)"/>
-<use href="#cube" transform="translate(828,238) scale(0.6)"/>
-<use href="#cube-hot" transform="translate(876,238) scale(0.6)"/>
-<text x="850" y="306" class="sm mid">cópia pública</text>
-<path d="M850,314 V336 H722" fill="none" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#ah-m)" class="a flow"/>
-</g>
-<g id="s6-what" class="a">
-<rect x="740" y="372" width="220" height="164" rx="12" fill="#1a0f10" stroke="#ff8a80" stroke-width="1.6"/>
-<text x="756" y="398" class="tag red">E SE ALGO FALHAR?</text>
-<use href="#no-s" transform="translate(754,414)"/>
-<text x="780" y="430" class="m2">R7 some do lote</text>
-<text x="780" y="452" class="m2 red">→ a conferência acusa</text>
-<use href="#no-s" transform="translate(754,474)"/>
-<text x="780" y="490" class="m2">total anunciado errado</text>
-<text x="780" y="512" class="m2 red">→ não confere</text>
-</g>
-</g>
-<g id="scene-7" class="scene a" data-start="48" data-end="56" opacity="0">
-<text x="40" y="98" class="k">7/7 · RESUMO</text>
-<text x="40" y="140" class="h">A urna cifra. A blockchain registra. Você confere.</text>
-<text x="40" y="174" class="s">O boletim mostra totais. Aqui, confira também se sua cédula foi incluída.</text>
-<text x="40" y="580" class="f">Protótipo educacional · blockchain local na demo (um nó Anvil) · não está pronto para produção.</text>
-<use href="#machine" transform="translate(125,230) scale(0.6)"/>
-<use href="#lock" transform="translate(141,253) scale(0.9)"/>
-<text x="320" y="268" class="sm mid">lote assinado</text>
-<line x1="252" y1="280" x2="386" y2="280" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<text x="500" y="232" class="mega2 mid">BLOCKCHAIN</text>
-<use href="#cube" transform="translate(396,248) scale(0.74)"/>
-<line x1="447.8" y1="277.6" x2="474.0" y2="277.6" stroke="#4ee3b5" stroke-width="2"/>
-<use href="#link" transform="translate(448.32,277.6) scale(0.74)"/>
-<use href="#cube" transform="translate(474,248) scale(0.74)"/>
-<line x1="525.8" y1="277.6" x2="552.0" y2="277.6" stroke="#4ee3b5" stroke-width="2"/>
-<use href="#link" transform="translate(526.3199999999999,277.6) scale(0.74)"/>
-<use href="#cube-hot" transform="translate(552,248) scale(0.74)"/>
-<text x="686" y="268" class="sm mid">cópia pública</text>
-<line x1="614" y1="280" x2="760" y2="280" stroke="#4ee3b5" stroke-width="2.6" stroke-linecap="round" marker-end="url(#ah-m)" class="a flow"/>
-<use href="#verifier" transform="translate(775,236) scale(0.6)"/>
-<path d="M180,320 V352 H820 V326" fill="none" stroke="#38d0f0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#ah-c)" class="a flow"/>
-<rect x="410" y="340" width="180" height="24" rx="12" fill="#081012"/>
-<text x="500" y="357" class="rc2 mid">seu recibo R7</text>
-<rect x="40" y="382" width="280" height="158" rx="12" fill="#0d1618" stroke="#8aa1a6" stroke-width="1.6"/>
-<text x="58" y="412" class="l2" style="fill:#eef6f5">URNA CIFRA</text>
-<text x="58" y="442" class="q">Quem guarda meu voto?</text>
-<text x="58" y="476" class="ans">A urna, cifrado,</text>
-<text x="58" y="502" class="ans">sem internet.</text>
-<rect x="360" y="382" width="280" height="158" rx="12" fill="#0d1618" stroke="#4ee3b5" stroke-width="1.6"/>
-<text x="378" y="412" class="l2" style="fill:#4ee3b5">BLOCKCHAIN REGISTRA</text>
-<text x="378" y="442" class="q">O que o contrato checa?</text>
-<text x="378" y="476" class="ans">Assinatura, prazo e</text>
-<text x="378" y="502" class="ans">um lote por urna.</text>
-<rect x="680" y="382" width="280" height="158" rx="12" fill="#0d1618" stroke="#38d0f0" stroke-width="1.6"/>
-<text x="698" y="412" class="l2" style="fill:#38d0f0">VOCÊ CONFERE</text>
-<text x="698" y="442" class="q">Quem confere votos e total?</text>
-<text x="698" y="476" class="ans">Verificador independente,</text>
-<text x="698" y="502" class="ans">com seu recibo R7.</text>
-</g>
+<text x="80" y="53"><tspan class="br">Urna Aberta</tspan><tspan class="tg" dx="8">· votação com blockchain</tspan></text>
+<rect x="800" y="47.4" width="120" height="1.2" fill="#2E2E30"/><rect id="pg-bar" class="a fbl" x="800" y="47.25" width="120" height="1.5" fill="#6E6D6A"/><circle cx="800" cy="48" r="2.2" fill="#55555A"/><circle cx="824" cy="48" r="2.2" fill="#55555A"/><circle cx="848" cy="48" r="2.2" fill="#55555A"/><circle cx="872" cy="48" r="2.2" fill="#55555A"/><circle cx="896" cy="48" r="2.2" fill="#55555A"/><circle cx="920" cy="48" r="2.2" fill="#55555A"/><circle id="pg-dot" class="a" cx="920" cy="48" r="4" fill="#93B99E"/>
+<g id="scene-1" class="scene a" data-start="0" data-end="8"><text x="80" y="140" class="h">Você escolhe. A urna cifra.</text><g id="sp1" class="a"><text x="80" y="524" class="s">Sem Internet durante a votação: a urna trabalha offline.</text></g><g transform="translate(150,248) scale(1)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><rect x="11" y="18" width="10" height="10" rx="2" fill="none" stroke="#8C8B87" stroke-width="1.25"/><line x1="28" y1="23" x2="52" y2="23" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><rect x="11" y="38" width="10" height="10" rx="2" fill="none" stroke="#8C8B87" stroke-width="1.25"/><line x1="28" y1="43" x2="48" y2="43" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><rect x="11" y="58" width="10" height="10" rx="2" fill="none" stroke="#8C8B87" stroke-width="1.25"/><line x1="28" y1="63" x2="52" y2="63" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><path d="M12.5,43 l3,3 l6,-7" fill="none" stroke="#93B99E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g><text x="182" y="376" class="l" text-anchor="middle">sua escolha</text><g id="s1-ar1" class="a"><line x1="232" y1="290" x2="386" y2="290" stroke="#6E6D6A" stroke-width="1.25"/><path d="M380,285.5 L388,290 L380,294.5" fill="none" stroke="#6E6D6A" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/></g><g transform="translate(400,226)"><rect x="0" y="0" width="180" height="128" rx="12" fill="#212122" stroke="#6E6D6A" stroke-width="1.25"/><rect x="20" y="18" width="140" height="44" rx="5" fill="#19191A" stroke="#4A4A4C" stroke-width="1"/><g id="s1-lock" class="a"><path d="M84,34 v-4 a6,6 0 0 1 12,0 v4" fill="none" stroke="#93B99E" stroke-width="1.6"/><rect x="81" y="34" width="18" height="12" rx="2" fill="none" stroke="#93B99E" stroke-width="1.6"/></g><rect x="30" y="80" width="22" height="10" rx="3" fill="#2B2B2C" stroke="#4A4A4C" stroke-width="1"/><rect x="30" y="98" width="22" height="10" rx="3" fill="#2B2B2C" stroke="#4A4A4C" stroke-width="1"/><rect x="62" y="80" width="22" height="10" rx="3" fill="#2B2B2C" stroke="#4A4A4C" stroke-width="1"/><rect x="62" y="98" width="22" height="10" rx="3" fill="#2B2B2C" stroke="#4A4A4C" stroke-width="1"/><rect x="94" y="80" width="22" height="10" rx="3" fill="#2B2B2C" stroke="#4A4A4C" stroke-width="1"/><rect x="94" y="98" width="22" height="10" rx="3" fill="#2B2B2C" stroke="#4A4A4C" stroke-width="1"/><rect x="126" y="80" width="22" height="10" rx="3" fill="#2B2B2C" stroke="#4A4A4C" stroke-width="1"/><rect x="126" y="98" width="22" height="10" rx="3" fill="#2B2B2C" stroke="#4A4A4C" stroke-width="1"/><line x1="180" y1="44" x2="180" y2="84" stroke="#161617" stroke-width="3"/></g><text x="490" y="376" class="l" text-anchor="middle">urna offline</text><g id="s1-ghost" class="a"><g transform="translate(150,248) scale(1)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><rect x="11" y="18" width="10" height="10" rx="2" fill="none" stroke="#8C8B87" stroke-width="1.25"/><line x1="28" y1="23" x2="52" y2="23" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><rect x="11" y="38" width="10" height="10" rx="2" fill="none" stroke="#8C8B87" stroke-width="1.25"/><line x1="28" y1="43" x2="48" y2="43" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><rect x="11" y="58" width="10" height="10" rx="2" fill="none" stroke="#8C8B87" stroke-width="1.25"/><line x1="28" y1="63" x2="52" y2="63" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><path d="M12.5,43 l3,3 l6,-7" fill="none" stroke="#93B99E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g></g><g id="s1-ar2" class="a"><line x1="596" y1="290" x2="750" y2="290" stroke="#6E6D6A" stroke-width="1.25"/><path d="M744,285.5 L752,290 L744,294.5" fill="none" stroke="#6E6D6A" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/></g><g id="s1-seal" class="a"><g transform="translate(768,248) scale(1)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#93B99E" stroke-width="1.5"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><text x="800" y="376" class="l" text-anchor="middle">cédula cifrada</text></g></g>
+<g id="scene-2" class="scene a" data-start="8" data-end="16"><text x="80" y="140" class="h">O recibo vem antes da decisão.</text><g id="sp2" class="a"><text x="80" y="524" class="s">Testar permite conferir se a urna cifrou a sua escolha.</text></g><g transform="translate(96,252) scale(1)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#93B99E" stroke-width="1.5"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><g id="s2-rc" class="a"><g transform="translate(204,236) scale(1)"><path d="M0,0 H76 V104 L69.7,108 L63.3,104 L57.0,108 L50.7,104 L44.3,108 L38.0,104 L31.7,108 L25.3,104 L19.0,108 L12.7,104 L6.3,108 L0.0,104 L0,104 Z" fill="#E6E4DF"/><text x="10" y="20" class="rk">recibo</text><circle cx="64" cy="16" r="4" fill="#93B99E"/><text x="10" y="60" class="rr">R7</text><path d="M10,82 c6,-10 10,8 16,-2 s8,-8 12,0 s8,6 14,-3" fill="none" stroke="#6B6A66" stroke-width="1.3" stroke-linecap="round"/><line x1="10" y1="90" x2="66" y2="90" stroke="#B5B3AE" stroke-width="1"/></g><text x="242" y="376" class="l" text-anchor="middle">recibo assinado</text><text x="242" y="398" class="m" text-anchor="middle">sem candidato</text></g><g id="s2-fork" class="a"><path d="M296,290 H330 C368,290 372,212 412,212 H456" fill="none" stroke="#6E6D6A" stroke-width="1.25"/><path d="M330,290 C368,290 372,368 412,368 H456" fill="none" stroke="#6E6D6A" stroke-width="1.25"/></g><g id="s2-conf" class="a"><text x="472" y="219" class="b" text-anchor="start">Confirmar</text><g transform="translate(612,186) scale(0.62)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#93B99E" stroke-width="1.5"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><text x="664" y="219" class="l" text-anchor="start">segue cifrada</text></g><g id="s2-test" class="a"><text x="472" y="375" class="b" text-anchor="start">Testar</text><g transform="translate(612,342) scale(0.62)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><rect x="11" y="18" width="10" height="10" rx="2" fill="none" stroke="#8C8B87" stroke-width="1.25"/><line x1="28" y1="23" x2="52" y2="23" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><rect x="11" y="38" width="10" height="10" rx="2" fill="none" stroke="#8C8B87" stroke-width="1.25"/><line x1="28" y1="43" x2="48" y2="43" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><rect x="11" y="58" width="10" height="10" rx="2" fill="none" stroke="#8C8B87" stroke-width="1.25"/><line x1="28" y1="63" x2="52" y2="63" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><path d="M12.5,43 l3,3 l6,-7" fill="none" stroke="#B9B8B3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="-6" y1="90" x2="70" y2="-6" stroke="#B9B8B3" stroke-width="1.5" stroke-linecap="round"/></g><text x="664" y="366" class="l" text-anchor="start">abre e anula</text><text x="664" y="389" class="m" text-anchor="start">e você vota de novo</text></g></g>
+<g id="scene-3" class="scene a" data-start="16" data-end="24"><text x="80" y="140" class="h">Ao encerrar, o lote vai à blockchain.</text><g id="sp3" class="a"><text x="80" y="524" class="s">O contrato confere a assinatura, a urna registrada e o prazo.</text></g><g transform="translate(112,244) scale(0.75)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><g transform="translate(128,234) scale(0.75)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><g transform="translate(144,224) scale(0.75)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><g transform="translate(160,214) scale(0.75)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#93B99E" stroke-width="1.5"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><line x1="112" y1="326" x2="208" y2="326" stroke="#8C8B87" stroke-width="1.25"/><circle cx="208" cy="326" r="4" fill="#93B99E"/><text x="160" y="376" class="l" text-anchor="middle">lote assinado</text><text x="160" y="398" class="m" text-anchor="middle">um por urna</text><g id="s3-tr" class="a"><path d="M222,258 C360,150 660,150 768,250" fill="none" stroke="#6E6D6A" stroke-width="1.25" stroke-dasharray="3 5"/><path d="M760.5,247.5 L768,250 L766.5,242" fill="none" stroke="#6E6D6A" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/></g><rect x="512" y="262" width="56" height="56" rx="5" fill="#212122" stroke="#6E6D6A" stroke-width="1.25"/><line x1="524" y1="282" x2="556" y2="282" stroke="#4A4A4C" stroke-width="2"/><line x1="524" y1="294" x2="546" y2="294" stroke="#4A4A4C" stroke-width="2"/><line x1="568" y1="290" x2="590" y2="290" stroke="#6E6D6A" stroke-width="1.25"/><rect x="590" y="262" width="56" height="56" rx="5" fill="#212122" stroke="#6E6D6A" stroke-width="1.25"/><line x1="602" y1="282" x2="634" y2="282" stroke="#4A4A4C" stroke-width="2"/><line x1="602" y1="294" x2="624" y2="294" stroke="#4A4A4C" stroke-width="2"/><line x1="646" y1="290" x2="668" y2="290" stroke="#6E6D6A" stroke-width="1.25"/><rect x="668" y="262" width="56" height="56" rx="5" fill="#212122" stroke="#6E6D6A" stroke-width="1.25"/><line x1="680" y1="282" x2="712" y2="282" stroke="#4A4A4C" stroke-width="2"/><line x1="680" y1="294" x2="702" y2="294" stroke="#4A4A4C" stroke-width="2"/><line x1="724" y1="290" x2="746" y2="290" stroke="#6E6D6A" stroke-width="1.25"/><rect x="746" y="262" width="56" height="56" rx="5" fill="none" stroke="#4A4A4C" stroke-width="1.25" stroke-dasharray="4 4"/><g id="s3-blk" class="a"><rect x="746" y="262" width="56" height="56" rx="5" fill="#212122" stroke="#ECEBE7" stroke-width="1.25"/></g><g id="s3-pk" class="a"><g transform="translate(756,274) scale(0.36)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><g transform="translate(766,270) scale(0.36)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#93B99E" stroke-width="1.5"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g></g><text x="657" y="376" class="l" text-anchor="middle">blockchain</text><text x="657" y="398" class="m" text-anchor="middle">registro público</text></g>
+<g id="scene-4" class="scene a" data-start="24" data-end="32"><text x="80" y="140" class="h">Os votos são somados ainda cifrados.</text><g id="sp4" class="a"><text x="80" y="524" class="s">Nenhuma escolha individual precisa ser aberta para contar.</text></g><g transform="translate(220,194) scale(0.6)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><path d="M266,219 C390,219 420,304 520,304" fill="none" stroke="#4A4A4C" stroke-width="1.25"/><circle id="s4-d0" class="a" cx="520" cy="304" r="3.5" fill="#B9B8B3"/><g transform="translate(220,256) scale(0.6)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#93B99E" stroke-width="1.5"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><path d="M266,281 C390,281 420,304 520,304" fill="none" stroke="#4A4A4C" stroke-width="1.25"/><circle id="s4-d1" class="a" cx="520" cy="304" r="3.5" fill="#93B99E"/><g transform="translate(220,318) scale(0.6)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><path d="M266,343 C390,343 420,304 520,304" fill="none" stroke="#4A4A4C" stroke-width="1.25"/><circle id="s4-d2" class="a" cx="520" cy="304" r="3.5" fill="#B9B8B3"/><g transform="translate(220,380) scale(0.6)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><path d="M266,405 C390,405 420,304 520,304" fill="none" stroke="#4A4A4C" stroke-width="1.25"/><circle id="s4-d3" class="a" cx="520" cy="304" r="3.5" fill="#B9B8B3"/><text x="239" y="466" class="l" text-anchor="middle">cédulas publicadas</text><g><line x1="520" y1="304" x2="638" y2="304" stroke="#6E6D6A" stroke-width="1.25"/><path d="M632,299.5 L640,304 L632,308.5" fill="none" stroke="#6E6D6A" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/></g><g id="s4-sum" class="a"><g class="fb"><g transform="translate(656,242) scale(1)"><rect x="0" y="0" width="96" height="124" rx="5" fill="#212122" stroke="#93B99E" stroke-width="1.5"/><path d="M42,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="39" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><text x="48" y="74" class="sig" text-anchor="middle">Σ</text><line x1="10" y1="90" x2="86" y2="90" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="98" x2="86" y2="98" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="106" x2="86" y2="106" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/></g></g><text x="704" y="400" class="l" text-anchor="middle">soma cifrada</text></g></g>
+<g id="scene-5" class="scene a" data-start="32" data-end="40"><text x="80" y="140" class="h">Três guardiões juntos abrem a soma.</text><g id="sp5" class="a"><text x="80" y="524" class="s">Neste fluxo, cada um traz uma prova e só o total é aberto.</text></g><circle cx="200" cy="196" r="16" fill="#212122" stroke="#ECEBE7" stroke-width="1.25"/><circle cx="195" cy="196" r="4.5" fill="none" stroke="#ECEBE7" stroke-width="1.4"/><path d="M199.5,196 h9 m-3,0 v4" fill="none" stroke="#ECEBE7" stroke-width="1.4" stroke-linecap="round"/><path d="M218,196 C320,196 340,300 444,300" fill="none" stroke="#4A4A4C" stroke-width="1.25"/><circle id="s5-d0" class="a" cx="444" cy="300" r="4" fill="#93B99E"/><circle cx="200" cy="248" r="16" fill="#212122" stroke="#4A4A4C" stroke-width="1.25"/><circle cx="195" cy="248" r="4.5" fill="none" stroke="#4A4A4C" stroke-width="1.4"/><path d="M199.5,248 h9 m-3,0 v4" fill="none" stroke="#4A4A4C" stroke-width="1.4" stroke-linecap="round"/><circle cx="200" cy="300" r="16" fill="#212122" stroke="#ECEBE7" stroke-width="1.25"/><circle cx="195" cy="300" r="4.5" fill="none" stroke="#ECEBE7" stroke-width="1.4"/><path d="M199.5,300 h9 m-3,0 v4" fill="none" stroke="#ECEBE7" stroke-width="1.4" stroke-linecap="round"/><path d="M218,300 C320,300 340,300 444,300" fill="none" stroke="#4A4A4C" stroke-width="1.25"/><circle id="s5-d2" class="a" cx="444" cy="300" r="4" fill="#93B99E"/><circle cx="200" cy="352" r="16" fill="#212122" stroke="#ECEBE7" stroke-width="1.25"/><circle cx="195" cy="352" r="4.5" fill="none" stroke="#ECEBE7" stroke-width="1.4"/><path d="M199.5,352 h9 m-3,0 v4" fill="none" stroke="#ECEBE7" stroke-width="1.4" stroke-linecap="round"/><path d="M218,352 C320,352 340,300 444,300" fill="none" stroke="#4A4A4C" stroke-width="1.25"/><circle id="s5-d3" class="a" cx="444" cy="300" r="4" fill="#93B99E"/><circle cx="200" cy="404" r="16" fill="#212122" stroke="#4A4A4C" stroke-width="1.25"/><circle cx="195" cy="404" r="4.5" fill="none" stroke="#4A4A4C" stroke-width="1.4"/><path d="M199.5,404 h9 m-3,0 v4" fill="none" stroke="#4A4A4C" stroke-width="1.4" stroke-linecap="round"/><text x="200" y="456" class="l" text-anchor="middle">5 guardiões da chave</text><text x="200" y="478" class="m" text-anchor="middle">bastam 3</text><g transform="translate(452,238) scale(1)"><rect x="0" y="0" width="96" height="124" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><path d="M42,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="39" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><text x="48" y="74" class="sig" text-anchor="middle">Σ</text><line x1="10" y1="90" x2="86" y2="90" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="98" x2="86" y2="98" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="106" x2="86" y2="106" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/></g><text x="500" y="400" class="l" text-anchor="middle">soma cifrada</text><g id="s5-ar" class="a"><line x1="560" y1="300" x2="674" y2="300" stroke="#6E6D6A" stroke-width="1.25"/><path d="M668,295.5 L676,300 L668,304.5" fill="none" stroke="#6E6D6A" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/></g><g id="s5-tot" class="a"><rect x="692" y="238" width="96" height="124" rx="5" fill="#212122" stroke="#ECEBE7" stroke-width="1.25"/><rect x="710" y="268" width="56" height="8" rx="2" fill="#B9B8B3"/><rect x="710" y="296" width="40" height="8" rx="2" fill="#B9B8B3"/><rect x="710" y="324" width="50" height="8" rx="2" fill="#B9B8B3"/><text x="740" y="400" class="l" text-anchor="middle">total</text></g></g>
+<g id="scene-6" class="scene a" data-start="40" data-end="48"><text x="80" y="140" class="h">Depois, qualquer pessoa confere.</text><g id="sp6" class="a"><text x="80" y="524" class="s">Decidem o recibo assinado completo e as provas, não só o R7.</text></g><rect x="196" y="186" width="58" height="74" rx="4" fill="#212122" stroke="#6E6D6A" stroke-width="1.25"/><rect x="186" y="194" width="58" height="74" rx="4" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><line x1="196" y1="212" x2="232" y2="212" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><line x1="196" y1="224" x2="222" y2="224" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><line x1="196" y1="236" x2="232" y2="236" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><line x1="196" y1="248" x2="222" y2="248" stroke="#6E6D6A" stroke-width="2" stroke-linecap="round"/><text x="220" y="294" class="l" text-anchor="middle">dados públicos e provas</text><g transform="translate(184,322) scale(0.82)"><path d="M0,0 H76 V104 L69.7,108 L63.3,104 L57.0,108 L50.7,104 L44.3,108 L38.0,104 L31.7,108 L25.3,104 L19.0,108 L12.7,104 L6.3,108 L0.0,104 L0,104 Z" fill="#E6E4DF"/><text x="10" y="20" class="rk">recibo</text><circle cx="64" cy="16" r="4" fill="#93B99E"/><text x="10" y="60" class="rr">R7</text><path d="M10,82 c6,-10 10,8 16,-2 s8,-8 12,0 s8,6 14,-3" fill="none" stroke="#6B6A66" stroke-width="1.3" stroke-linecap="round"/><line x1="10" y1="90" x2="66" y2="90" stroke="#B5B3AE" stroke-width="1"/></g><text x="215" y="440" class="l" text-anchor="middle">seu recibo assinado</text><path d="M262,231 C380,231 400,300 476,300" fill="none" stroke="#4A4A4C" stroke-width="1.25"/><circle id="s6-d0" class="a" cx="476" cy="300" r="4" fill="#B9B8B3"/><path d="M256,366 C380,366 400,300 476,300" fill="none" stroke="#4A4A4C" stroke-width="1.25"/><circle id="s6-d1" class="a" cx="476" cy="300" r="4" fill="#93B99E"/><rect x="476" y="236" width="160" height="128" rx="14" fill="#1C1C1D" stroke="#B9B8B3" stroke-width="1.25"/><circle cx="552" cy="272" r="11" fill="none" stroke="#B9B8B3" stroke-width="1.5"/><line x1="560" y1="280" x2="568" y2="288" stroke="#B9B8B3" stroke-width="1.5" stroke-linecap="round"/><text x="556" y="322" class="l" text-anchor="middle">verificador</text><text x="556" y="344" class="l" text-anchor="middle">independente</text><g id="s6-ar" class="a"><line x1="636" y1="300" x2="678" y2="300" stroke="#6E6D6A" stroke-width="1.25"/><path d="M672,295.5 L680,300 L672,304.5" fill="none" stroke="#6E6D6A" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round"/></g><g id="s6-o0" class="a"><path d="M698,280 l4.5,4.5 l9,-10" fill="none" stroke="#93B99E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="724" y="286" class="o" text-anchor="start">recibo incluído</text></g><g id="s6-o1" class="a"><path d="M698,320 l4.5,4.5 l9,-10" fill="none" stroke="#93B99E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="724" y="326" class="o" text-anchor="start">total recalculado</text></g></g>
+<g id="scene-7" class="scene a" data-start="48" data-end="56"><text x="80" y="140" class="h">Mais que um resultado: algo que você confere.</text><g id="sp7" class="a"><text x="80" y="524" class="s">Além de ler o resultado, você confere a inclusão e refaz a conta.</text></g><line x1="220" y1="300" x2="780" y2="300" stroke="#4A4A4C" stroke-width="1.25"/><g transform="translate(207,236) scale(0.4)"><rect x="0" y="0" width="64" height="84" rx="5" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><path d="M26,22 v-5 a6,6 0 0 1 12,0 v5" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><rect x="23" y="22" width="18" height="13" rx="2" fill="none" stroke="#B9B8B3" stroke-width="1.4"/><line x1="10" y1="48" x2="54" y2="48" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="3 2 7 2 2 3 5 2"/><line x1="10" y1="56" x2="54" y2="56" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="6 3 2 2 4 2 3 3"/><line x1="10" y1="64" x2="54" y2="64" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="2 2 5 3 3 2 6 2"/><line x1="10" y1="72" x2="54" y2="72" stroke="#4F4E4C" stroke-width="2" stroke-dasharray="4 3 3 2 6 2 2 3"/></g><rect x="474" y="246" width="22" height="22" rx="3" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><line x1="496" y1="257" x2="504" y2="257" stroke="#8C8B87" stroke-width="1.25"/><rect x="504" y="246" width="22" height="22" rx="3" fill="#212122" stroke="#8C8B87" stroke-width="1.25"/><path d="M770,256 l6,6 l12,-13" fill="none" stroke="#93B99E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="220" cy="300" r="6" fill="#161617" stroke="#8C8B87" stroke-width="1.5"/><circle cx="500" cy="300" r="6" fill="#161617" stroke="#8C8B87" stroke-width="1.5"/><circle cx="780" cy="300" r="6" fill="#161617" stroke="#ECEBE7" stroke-width="1.5"/><text x="220" y="340" class="l" text-anchor="middle">a urna cifra</text><text x="500" y="340" class="l" text-anchor="middle">a blockchain registra</text><text x="780" y="340" class="b" text-anchor="middle">você confere</text><circle id="s7-dot" class="a" cx="780" cy="300" r="5" fill="#93B99E"/><text x="80" y="572" class="f" text-anchor="start">Protótipo educacional · blockchain local (Anvil)</text></g>
 </svg>
