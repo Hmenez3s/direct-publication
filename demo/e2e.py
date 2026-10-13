@@ -12,7 +12,7 @@ import time
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any
 
 from eth_account import Account
 
@@ -24,11 +24,13 @@ from demo.chain import (
     post_partial,
     read_evidence,
 )
+from demo.screen import LANGUAGES, Screen
 from trustees.api import partial_for_final_tally
 from trustees.dealer import create_dealer
+from urna.crypto import verify_opening
 from urna.encoding import canonical_json_bytes, sha256_hex
 from urna.machine import VotingMachine
-from urna.schema import Receipt, TrusteePublic, aggregate_digest
+from urna.schema import BatchPayload, Receipt, TrusteePublic, aggregate_digest
 from urna.transport import PhysicalSwitchSimulator, ScratchReinstall, export_carrier
 from verifier.audit import audit_board
 
@@ -101,20 +103,6 @@ def _record(path: Path, data: Any) -> None:
     )
 
 
-class _Tee:
-    def __init__(self, *streams: TextIO) -> None:
-        self._streams = streams
-
-    def write(self, text: str) -> int:
-        for stream in self._streams:
-            stream.write(text)
-        return len(text)
-
-    def flush(self) -> None:
-        for stream in self._streams:
-            stream.flush()
-
-
 def _public_verifier(
     root: Path,
     manifest: dict[str, Any],
@@ -161,16 +149,21 @@ def _public_verifier(
     return json.loads(completed.stdout), elapsed, completed.stderr
 
 
-def run_demo(output_root: str | Path) -> dict[str, Any]:
+def run_demo(output_root: str | Path, screen: Screen | None = None) -> dict[str, Any]:
+    started = time.monotonic()
+    screen = screen or Screen()
     root = reserve_output_root(output_root)
     project_root = Path(__file__).resolve().parents[1]
+    screen.title()
     reinstall = verify_scratch_install(project_root)
+    screen.software()
     transcript = StringIO()
     gas: list[dict[str, int | str]] = []
     run_id = hashlib.sha256(os.urandom(32)).hexdigest()[:16]
-    with redirect_stdout(_Tee(transcript, sys.stdout)), owned_anvil() as chain:
+    with redirect_stdout(transcript), owned_anvil() as chain:
         election_id = hashlib.sha256(os.urandom(32)).hexdigest()
         dealer = create_dealer(election_id)
+        screen.key()
         machines = (chain.accounts[1], chain.accounts[2])
         trustees = tuple(Account.from_key(chain.accounts[index + 3].key) for index in range(5))
         trustee_public = tuple(
@@ -188,11 +181,14 @@ def run_demo(output_root: str | Path) -> dict[str, Any]:
             "max_tally": 20,
         }
         manifest, board, _ = deploy_board(chain, params, trustee_public, machines)
+        screen.board(manifest.candidates)
+        screen.section("voting")
         all_receipts: list[Receipt] = []
         expected_totals = [2, 2, 2]
         choices = (0, 1, 2)
         voting_machines = []
         switches = []
+        voter = 0
         for machine_number, account in enumerate(machines):
             machine = VotingMachine(manifest, account.key)
             switch = PhysicalSwitchSimulator()
@@ -200,10 +196,18 @@ def run_demo(output_root: str | Path) -> dict[str, Any]:
             switches.append(switch)
             if switch.enabled:
                 raise RuntimeError("network switch is unexpectedly enabled during voting")
+            screen.machine(machine_number + 1)
             if machine_number == 0:
                 tested = machine.prepare(1, output=sys.stdout)
                 all_receipts.append(tested)
+                voter += 1
+                screen.receipt(voter, tested.lookup_code)
                 opening = machine.test()
+                screen.decision("TEST")
+                verify_opening(manifest, opening.ballot, opening.choice_index, opening.randomness)
+                if opening.choice_index != 1:
+                    raise RuntimeError("TEST opening differs from the voter's choice")
+                screen.opened(voter, manifest.candidates[opening.choice_index])
                 print("DECISION TEST: receipt retained; ballot SPOILED and excluded from tally")
                 print(
                     "PUBLIC TEST OPENING:",
@@ -214,18 +218,24 @@ def run_demo(output_root: str | Path) -> dict[str, Any]:
                 )
                 retry = machine.prepare(1, output=sys.stdout)
                 all_receipts.append(retry)
+                screen.receipt(voter, retry.lookup_code)
                 print("DECISION CONFIRM: retry CAST")
                 machine.confirm()
+                screen.decision("CONFIRM")
             for choice in choices:
                 if machine_number == 0 and choice == 1:
                     continue  # The TEST ballot was retried and confirmed above.
                 receipt = machine.prepare(choice, output=sys.stdout)
                 all_receipts.append(receipt)
+                voter += 1
+                screen.receipt(voter, receipt.lookup_code)
                 print("DECISION CONFIRM: CAST")
                 machine.confirm()
+                screen.decision("CONFIRM")
         if any(switch.enabled for switch in switches):
             raise RuntimeError("network switch was enabled before polls closed")
         print("POLLS CLOSED locally; publication window remains open; voting switches were off.")
+        screen.section("closing")
         for machine_number, (machine, account) in enumerate(
             zip(voting_machines, machines, strict=True)
         ):
@@ -254,45 +264,54 @@ def run_demo(output_root: str | Path) -> dict[str, Any]:
                 "POLL-WORKER SEAL simulation bound to machine "
                 f"{machine_number + 1}; exact carrier published"
             )
+            published = BatchPayload.from_bytes(payload)
+            screen.published(machine_number + 1, len(published.cast), len(published.spoiled))
         # batch_deadline is the publication cutoff, not the local poll-close event.
         # Freeze the board only after every signed batch was submitted in time.
         advance_time(chain, manifest.batch_deadline + 1)
         evidence = read_evidence(chain, board, manifest)
-        verified = audit_board(manifest, evidence, all_receipts)
-        digest = aggregate_digest(verified.aggregate)
-        for share in dealer.shares[:3]:
-            expected_pin = "0" * 64 if share.index == 1 else digest
-            if evidence.pinned_aggregate_digest != expected_pin:
-                raise RuntimeError("trustee pin does not match first-zero/subsequent-digest policy")
-            partial = partial_for_final_tally(manifest, evidence, share, all_receipts)
-            current = read_evidence(chain, board, manifest)
-            if current.pinned_aggregate_digest != expected_pin:
-                raise RuntimeError("on-chain trustee pin differs from the expected aggregate")
-            expected_snapshot = current.snapshot_hash
-            receipt = post_partial(
-                chain,
-                board,
-                trustees[share.index - 1],
-                expected_snapshot,
-                digest,
-                partial.to_bytes(),
-            )
-            gas.append(
-                {
-                    "kind": "partial",
-                    "trustee": share.index,
-                    "gas_used": int(receipt["gasUsed"]),
-                    "transaction_hash": bytes(receipt["transactionHash"]).hex(),
-                    "block_number": int(receipt["blockNumber"]),
-                }
-            )
-            evidence = read_evidence(chain, board, manifest)
+        screen.section("tally")
+        with screen.working("decrypting"):
+            verified = audit_board(manifest, evidence, all_receipts)
+            digest = aggregate_digest(verified.aggregate)
+            for share in dealer.shares[:3]:
+                expected_pin = "0" * 64 if share.index == 1 else digest
+                if evidence.pinned_aggregate_digest != expected_pin:
+                    raise RuntimeError(
+                        "trustee pin does not match first-zero/subsequent-digest policy"
+                    )
+                partial = partial_for_final_tally(manifest, evidence, share, all_receipts)
+                current = read_evidence(chain, board, manifest)
+                if current.pinned_aggregate_digest != expected_pin:
+                    raise RuntimeError("on-chain trustee pin differs from the expected aggregate")
+                expected_snapshot = current.snapshot_hash
+                receipt = post_partial(
+                    chain,
+                    board,
+                    trustees[share.index - 1],
+                    expected_snapshot,
+                    digest,
+                    partial.to_bytes(),
+                )
+                gas.append(
+                    {
+                        "kind": "partial",
+                        "trustee": share.index,
+                        "gas_used": int(receipt["gasUsed"]),
+                        "transaction_hash": bytes(receipt["transactionHash"]).hex(),
+                        "block_number": int(receipt["blockNumber"]),
+                    }
+                )
+                evidence = read_evidence(chain, board, manifest)
+                screen.partial(share.index)
         public_receipts = [receipt.to_dict() for receipt in all_receipts]
         manifest_dict = manifest.to_dict()
         evidence_dict = evidence.to_dict()
-        report, verifier_seconds, verifier_stderr = _public_verifier(
-            root, manifest_dict, evidence_dict, public_receipts
-        )
+        screen.section("check")
+        with screen.working("checking"):
+            report, verifier_seconds, verifier_stderr = _public_verifier(
+                root, manifest_dict, evidence_dict, public_receipts
+            )
         actual_totals = report["report"]["totals"]
         if actual_totals != expected_totals:
             raise AssertionError(f"private demo aggregate check failed: {actual_totals}")
@@ -331,6 +350,9 @@ def run_demo(output_root: str | Path) -> dict[str, Any]:
             spoiled_result,
             "; SPOILED opening is public and excluded from the tally.",
         )
+        screen.valid()
+        screen.receipt_status(1, all_receipts[1].lookup_code, report["lookup"]["counted"] is True)
+        screen.receipt_status(1, all_receipts[0].lookup_code, spoiled_result == "CAST")
     _record(root / "verifier-report.json", report)
     _record(
         root / "transcript.json",
@@ -341,15 +363,22 @@ def run_demo(output_root: str | Path) -> dict[str, Any]:
             "run": summary,
         },
     )
+    screen.results(manifest.candidates, actual_totals)
+    screen.verdict(
+        report["report"]["cast_count"],
+        report["report"]["spoiled_count"],
+        time.monotonic() - started,
+    )
     return summary
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-root", required=True, help="new output directory; must not exist")
+    parser.add_argument("--lang", choices=LANGUAGES, default="en", help="terminal language")
     args = parser.parse_args(argv)
     try:
-        summary = run_demo(args.output_root)
+        run_demo(args.output_root, Screen(args.lang))
     except (
         OSError,
         ValueError,
@@ -359,7 +388,6 @@ def main(argv: list[str] | None = None) -> int:
     ) as exc:
         print(f"demo failed: {exc}", file=sys.stderr)
         return 1
-    print(json.dumps(summary, sort_keys=True, indent=2))
     return 0
 
 

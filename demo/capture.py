@@ -1,4 +1,4 @@
-"""Run and present a genuine ``make demo`` execution for the VHS recording."""
+"""Run and archive a genuine demo command without reformatting its terminal output."""
 
 from __future__ import annotations
 
@@ -13,8 +13,9 @@ import threading
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-from rich.console import Console
+from urna.encoding import canonical_json_bytes
 
 
 class CaptureError(RuntimeError):
@@ -32,84 +33,142 @@ class CaptureResult:
     metadata_path: Path
 
 
-def _present(line: str, state: dict[str, object]) -> str | None:
-    """Return concise live presentation only for information parsed from child output."""
-    line = line.rstrip("\r\n")
-    if line.startswith("PREPARED RECEIPT "):
-        try:
-            receipt = json.loads(line.removeprefix("PREPARED RECEIPT "))
-            lookup = receipt["lookup_code"]
-            commitment = receipt["commitment"]
-            if not isinstance(lookup, str) or not isinstance(commitment, str):
-                return None
-        except (KeyError, json.JSONDecodeError, TypeError):
+def _json_file(path: Path) -> Any:
+    with path.open(encoding="utf-8") as stream:
+        return json.load(stream)
+
+
+def _verified_outputs(output_root: Path) -> str | None:
+    """Validate protocol milestones and evidence exported by this newly-created run."""
+    try:
+        transcript = _json_file(output_root / "transcript.json")
+        report = _json_file(output_root / "verifier-report.json")
+        manifest = _json_file(output_root / "manifest.json")
+        evidence = _json_file(output_root / "evidence.json")
+        receipts = _json_file(output_root / "receipts.json")
+        run = transcript["run"]
+        run_id = transcript["run_id"]
+        provenance = run["provenance"]
+        text = transcript["stdout"]
+        report_data = report["report"]
+        lookup = report["lookup"]
+        statuses = dict(report_data["receipt_results"])
+        if not isinstance(text, str):
             return None
-        state["receipt"] = True
-        return f"PREPARED RECEIPT | lookup {lookup} | commitment {commitment[:20]}..."
-    if line.startswith("DECISION TEST:"):
-        state["test"] = True
-        return line
-    if line.startswith("DECISION CONFIRM: retry CAST"):
-        state["retry"] = True
-        return line
-    if line.startswith("DECISION CONFIRM: CAST"):
-        return line
-    if line.startswith("POLL-WORKER SEAL simulation bound to machine "):
-        state["seal_count"] = int(state.get("seal_count", 0)) + 1
-        return line
-    if line.startswith("PUBLIC VERIFIER CAST receipt lookup: "):
-        try:
-            lookup = ast.literal_eval(line.split(": ", 1)[1])
-        except (ValueError, SyntaxError):
+        prepared = False
+        tested = retry = test_spoiled = False
+        seal_count = 0
+        transcript_lookup: dict[str, Any] | None = None
+        transcript_tally: list[int] | None = None
+        for line in text.splitlines():
+            if line.startswith("PREPARED RECEIPT "):
+                try:
+                    receipt = json.loads(line.removeprefix("PREPARED RECEIPT "))
+                except json.JSONDecodeError:
+                    continue
+                prepared |= isinstance(receipt.get("lookup_code"), str) and isinstance(
+                    receipt.get("commitment"), str
+                )
+            elif line.startswith("DECISION TEST:"):
+                tested = True
+            elif line.startswith("DECISION CONFIRM: retry CAST"):
+                retry = True
+            elif line.startswith("POLL-WORKER SEAL simulation bound to machine "):
+                seal_count += 1
+            elif line.startswith("PUBLIC VERIFIER CAST receipt lookup: "):
+                try:
+                    value = ast.literal_eval(line.split(": ", 1)[1])
+                except (ValueError, SyntaxError):
+                    continue
+                if isinstance(value, dict):
+                    transcript_lookup = value
+            elif line.startswith("PUBLIC VERIFIER tally: "):
+                try:
+                    value = ast.literal_eval(line.split(": ", 1)[1])
+                except (ValueError, SyntaxError):
+                    continue
+                if isinstance(value, list) and all(type(item) is int for item in value):
+                    transcript_tally = value
+            elif line.startswith("PUBLIC VERIFIER TEST receipt status:"):
+                test_spoiled = "SPOILED" in line and "excluded from the tally" in line
+        if not (
+            prepared
+            and tested
+            and retry
+            and test_spoiled
+            and seal_count >= 2
+            and transcript_lookup is not None
+            and transcript_tally is not None
+        ):
             return None
         if (
-            not isinstance(lookup, dict)
+            not isinstance(run_id, str)
+            or not run_id
+            or run.get("run_id") != run_id
+            or not isinstance(provenance, dict)
+            or any(
+                provenance.get(name) != hashlib.sha256(canonical_json_bytes(value)).hexdigest()
+                for name, value in (
+                    ("manifest_sha256", manifest),
+                    ("evidence_sha256", evidence),
+                    ("receipts_sha256", receipts),
+                )
+            )
+        ):
+            return None
+        if (
+            report_data.get("totals") != [2, 2, 2]
+            or transcript_tally != report_data.get("totals")
+            or transcript_lookup.get("status") != "CAST"
+            or transcript_lookup.get("counted") is not True
+            or transcript_lookup.get("commitment") != lookup.get("commitment")
+            or report_data.get("cast_count") != 6
+            or report_data.get("spoiled_count") != 1
             or lookup.get("status") != "CAST"
             or lookup.get("counted") is not True
+            or statuses.get(lookup.get("commitment")) != "CAST"
+            or "SPOILED" not in statuses.values()
         ):
             return None
-        state["lookup"] = lookup
-        return (
-            "PUBLIC VERIFIER CAST receipt lookup: "
-            f"status={lookup['status']} counted={lookup['counted']} "
-            f"commitment={str(lookup.get('commitment', ''))[:20]}..."
-        )
-    if line.startswith("PUBLIC VERIFIER tally: "):
-        try:
-            tally = ast.literal_eval(line.split(": ", 1)[1])
-        except (ValueError, SyntaxError):
-            return None
-        if (
-            not isinstance(tally, list)
-            or len(tally) != 3
-            or any(type(value) is not int for value in tally)
-        ):
-            return None
-        state["tally"] = tally
-        return f"PUBLIC VERIFIER tally: {tally}"
-    if line.startswith("PUBLIC VERIFIER TEST receipt status:"):
-        state["test_status"] = "SPOILED" in line and "excluded from the tally" in line
-        return line
-    if line.startswith("demo failed:"):
-        state["child_error"] = line
-        return line
-    return None
+        return run_id
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, json.JSONDecodeError):
+        return None
 
 
-def run_capture(command: Sequence[str], capture_root: Path) -> CaptureResult:
-    """Stream and archive a child run; accept only successful output with real milestones."""
+def _write_terminal(stream: Any, raw: bytes) -> None:
+    binary = getattr(stream, "buffer", None)
+    if binary is not None:
+        binary.write(raw)
+        binary.flush()
+    else:
+        stream.write(raw.decode("utf-8", errors="replace"))
+        stream.flush()
+
+
+def run_capture(command: Sequence[str], capture_root: Path, lang: str = "en") -> CaptureResult:
+    """Execute, faithfully stream and archive a child; accept only a verified fresh run."""
+    if lang not in ("en", "pt-BR"):
+        raise ValueError("language must be 'en' or 'pt-BR'")
     root = capture_root.resolve()
     if not root.is_dir():
         raise ValueError("capture root must be a newly created directory")
+    output_root = root / "demo-output"
+    if output_root.exists():
+        raise FileExistsError("refusing to credit pre-existing demo output")
     stdout_path, stderr_path = root / "child.stdout", root / "child.stderr"
     metadata_path = root / "capture.json"
     if any(path.exists() for path in (stdout_path, stderr_path, metadata_path)):
         raise FileExistsError("refusing to overwrite capture output")
-    state: dict[str, object] = {}
-    console = Console(file=sys.stdout, width=100)
+
     digest_out, digest_err = hashlib.sha256(), hashlib.sha256()
     env = os.environ.copy()
-    env["PYTHONUNBUFFERED"] = "1"
+    env.update(PYTHONUNBUFFERED="1", DEMO_LANG=lang)
+    if sys.stdout.isatty():
+        # The child writes through a pipe, but its bytes still reach this real terminal.
+        # Preserve Rich's colors, page clearing, and width without a second renderer.
+        env["TTY_COMPATIBLE"] = "1"
+        size = os.get_terminal_size(sys.stdout.fileno())
+        env.update(COLUMNS=str(size.columns), LINES=str(size.lines))
     process = subprocess.Popen(
         list(command),
         cwd=Path(__file__).resolve().parents[1],
@@ -121,60 +180,30 @@ def run_capture(command: Sequence[str], capture_root: Path) -> CaptureResult:
     assert process.stdout is not None and process.stderr is not None
 
     def drain_stderr() -> None:
-        with stderr_path.open("xb") as raw_err:
-            for line in process.stderr:
-                raw_err.write(line)
-                raw_err.flush()
-                digest_err.update(line)
+        with stderr_path.open("xb") as archived:
+            while chunk := process.stderr.read(8192):
+                archived.write(chunk)
+                archived.flush()
+                digest_err.update(chunk)
+                _write_terminal(sys.stderr, chunk)
 
     stderr_thread = threading.Thread(target=drain_stderr, daemon=True)
     stderr_thread.start()
-    with stdout_path.open("xb") as raw_out:
-        for raw_line in process.stdout:
-            raw_out.write(raw_line)
-            raw_out.flush()
-            digest_out.update(raw_line)
-            line = raw_line.decode("utf-8", errors="replace")
-            presented = _present(line, state)
-            if presented is not None:
-                style = (
-                    "bold green"
-                    if presented.startswith("PUBLIC VERIFIER")
-                    else "bold cyan"
-                    if presented.startswith("PREPARED")
-                    else "yellow"
-                )
-                console.print(presented, style=style, markup=False)
-                sys.stdout.flush()
+    with stdout_path.open("xb") as archived:
+        while chunk := process.stdout.read(8192):
+            archived.write(chunk)
+            archived.flush()
+            digest_out.update(chunk)
+            _write_terminal(sys.stdout, chunk)
     returncode = process.wait()
     stderr_thread.join()
 
-    summary = state.get("lookup")
-    tally = state.get("tally")
-    verified = (
-        returncode == 0
-        and state.get("receipt") is True
-        and state.get("test") is True
-        and state.get("retry") is True
-        and state.get("test_status") is True
-        and int(state.get("seal_count", 0)) >= 2
-        and isinstance(summary, dict)
-        and isinstance(tally, list)
-        and state.get("child_error") is None
-    )
-    run_id = None
-    if returncode == 0:
-        try:
-            for line in stdout_path.read_text(encoding="utf-8").splitlines():
-                if line.startswith('  "run_id": '):
-                    run_id = json.loads(line.split(": ", 1)[1].rstrip(","))
-                    break
-        except (OSError, json.JSONDecodeError):
-            pass
+    run_id = _verified_outputs(output_root) if returncode == 0 else None
+    verified = run_id is not None
     metadata = {
         "command": list(command),
         "returncode": returncode,
-        "verified_milestones": bool(verified),
+        "verified_milestones": verified,
         "run_id": run_id,
         "stdout_sha256": digest_out.hexdigest(),
         "stderr_sha256": digest_err.hexdigest(),
@@ -193,29 +222,37 @@ def run_capture(command: Sequence[str], capture_root: Path) -> CaptureResult:
     if not verified:
         print(
             f"Capture rejected: child exit={returncode}; required verified milestones missing.",
+            file=sys.stderr,
             flush=True,
         )
         raise CaptureError(f"demo capture rejected (exit {returncode})")
-    print(
-        f"Captured run {run_id}; child exit=0; stdout sha256={result.stdout_sha256}; "
-        f"stderr sha256={result.stderr_sha256}",
-        flush=True,
-    )
+    print("Capture verified" if lang == "en" else "Captura conferida", flush=True)
     return result
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--lang", choices=("en", "pt-BR"), default="en")
+    args = parser.parse_args(argv)
     capture_root = Path(tempfile.mkdtemp(prefix="urna-demo-capture-"))
     output_root = capture_root / "demo-output"
     try:
         run_capture(
-            ["make", "demo", f"OUTPUT_ROOT={output_root}"],
+            ["make", "demo", f"OUTPUT_ROOT={output_root}", f"DEMO_LANG={args.lang}"],
             capture_root,
+            args.lang,
         )
     except (CaptureError, OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr, flush=True)
         return 1
-    print("Capture provenance retained in the owned temporary run directory.", flush=True)
+    print(
+        "Full evidence retained in this run's files."
+        if args.lang == "en"
+        else "Provas completas preservadas nos arquivos da execução.",
+        flush=True,
+    )
     return 0
 
 

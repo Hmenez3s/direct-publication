@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from io import StringIO
 from pathlib import Path
 
 import pytest
@@ -13,7 +14,9 @@ from demo.e2e import (
     run_demo,
 )
 from demo.measure import timed_samples
+from demo.screen import Screen
 from urna.encoding import sha256_hex
+from urna.machine import VotingMachine
 
 
 def test_approved_source_bundle_matches_pinned_release() -> None:
@@ -46,10 +49,45 @@ def test_timed_samples_are_monotonic_raw_samples_and_require_three() -> None:
 
 
 def test_integration_real_election_demo_exports_publicly_verifiable_evidence(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     output = tmp_path / "owned-demo"
-    summary = run_demo(output)
+    terminal = StringIO()
+    screen = Screen(file=terminal)
+    latest_receipt: list[str] = []
+    actions: list[str] = []
+    original_receipt = screen.receipt
+    original_decision = screen.decision
+    original_test = VotingMachine.test
+    original_confirm = VotingMachine.confirm
+
+    def record_receipt(voter: int, code: str) -> None:
+        original_receipt(voter, code)
+        latest_receipt[:] = [code]
+
+    def test_after_receipt(machine: VotingMachine):
+        assert latest_receipt and latest_receipt[-1] in terminal.getvalue()
+        latest_receipt.clear()
+        result = original_test(machine)
+        actions.append("TEST")
+        return result
+
+    def confirm_after_receipt(machine: VotingMachine):
+        assert latest_receipt and latest_receipt[-1] in terminal.getvalue()
+        latest_receipt.clear()
+        result = original_confirm(machine)
+        actions.append("CONFIRM")
+        return result
+
+    def decision_after_action(decision: str) -> None:
+        assert actions and actions[-1] == decision
+        original_decision(decision)
+
+    monkeypatch.setattr(screen, "receipt", record_receipt)
+    monkeypatch.setattr(screen, "decision", decision_after_action)
+    monkeypatch.setattr(VotingMachine, "test", test_after_receipt)
+    monkeypatch.setattr(VotingMachine, "confirm", confirm_after_receipt)
+    summary = run_demo(output, screen)
     assert summary["cast_ballots"] == 6
     assert summary["spoiled_ballots"] == 1
     assert summary["batches"] == summary["machines"] == 2
@@ -63,6 +101,11 @@ def test_integration_real_election_demo_exports_publicly_verifiable_evidence(
     assert len(evidence["batches"]) == 2
     assert len(evidence["partials"]) == 3
     transcript = json.loads((output / "transcript.json").read_text(encoding="utf-8"))
+    screen_text = terminal.getvalue()
+    exported_receipts = json.loads((output / "receipts.json").read_text(encoding="utf-8"))
+    assert all(candidate in screen_text for candidate in summary["candidates"])
+    assert all(receipt["lookup_code"] in screen_text for receipt in exported_receipts)
+    assert "Result verified:" in screen_text
     assert "PUBLIC TEST OPENING:" in transcript["stdout"]
     assert "SPOILED" in transcript["stdout"]
     assert "PUBLIC VERIFIER tally: [2, 2, 2]" in transcript["stdout"]

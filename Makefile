@@ -17,7 +17,7 @@ test:
 .PHONY: build-contract test-contract attacks attack-machine attack-transport attack-drop-vote attack-tally attack-duplicate attack-rogue-machine attack-double-vote attack-early-network check
 
 build-contract:
-	forge build --root contracts -j $(WORKERS)
+	@forge build --root contracts -j $(WORKERS) --quiet
 
 # Public-chain checks need the generated ABI and bytecode on a fresh checkout.
 test attack-transport attack-drop-vote attack-tally attack-duplicate attack-rogue-machine: build-contract
@@ -58,12 +58,13 @@ check: lint format-check test test-contract attacks
 .PHONY: demo measure
 
 OUTPUT_ROOT ?=
+DEMO_LANG ?= en
 
 demo: build-contract
 	@if [ -n "$(OUTPUT_ROOT)" ]; then \
-		uv run python -m demo.e2e --output-root "$(OUTPUT_ROOT)"; \
+		uv run python -m demo.e2e --lang "$(DEMO_LANG)" --output-root "$(OUTPUT_ROOT)"; \
 	else \
-		scratch=$$(mktemp -d -t urna-demo-XXXXXX) && uv run python -m demo.e2e --output-root "$$scratch/output"; \
+		scratch=$$(mktemp -d -t urna-demo-XXXXXX) && uv run python -m demo.e2e --lang "$(DEMO_LANG)" --output-root "$$scratch/output"; \
 	fi
 
 measure: build-contract
