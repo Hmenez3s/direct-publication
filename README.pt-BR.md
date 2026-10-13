@@ -6,9 +6,9 @@ Neste protótipo educacional, você vota numa urna offline e recebe um recibo se
 
 [English](README.md) · [Rodar a demo](#rodar) · [Artigo](paper/main.pdf)
 
-[![Como um recibo liga a urna offline à blockchain e à conferência pública](docs/intro.pt-BR.png)](docs/intro.pt-BR.mp4)
+[![Como um recibo liga a urna offline à blockchain e à conferência pública](docs/intro.pt-BR.gif)](docs/intro.pt-BR.mp4)
 
-**[Assistir à explicação: 56 segundos, com pausa e avanço](docs/intro.pt-BR.mp4).** Acompanhe uma cédula do recibo até a conferência. Animação ilustrativa com legendas na imagem, sem áudio; `R7` é um código simbólico, não um recibo real.
+A animação acima roda automaticamente e dura 56 segundos. **[Abrir o vídeo com pausa e avanço](docs/intro.pt-BR.mp4).** Acompanhe uma cédula do recibo até a conferência. Animação ilustrativa com legendas na imagem, sem áudio; `R7` é um código simbólico, não um recibo real.
 
 ## Quem faz o quê
 

@@ -6,9 +6,9 @@ In this educational prototype, you vote on an offline machine and receive a rece
 
 [Português brasileiro](README.pt-BR.md) · [Run the demo](#run-it) · [Paper](paper/main.pdf)
 
-[![Follow one receipt from the offline machine through the blockchain to public verification](docs/intro.png)](docs/intro.mp4)
+[![Follow one receipt from the offline machine through the blockchain to public verification](docs/intro.gif)](docs/intro.mp4)
 
-**[Watch the 56-second explanation, with pause and seeking](docs/intro.mp4).** Follow a ballot from receipt to verification. An illustrative animation with on-screen captions and no audio; `R7` is a symbolic code, not a real receipt.
+The animation above plays automatically and lasts 56 seconds. **[Open the video with pause and seeking](docs/intro.mp4).** Follow a ballot from receipt to verification. An illustrative animation with on-screen captions and no audio; `R7` is a symbolic code, not a real receipt.
 
 ## Who does what
 
