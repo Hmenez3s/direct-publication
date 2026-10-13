@@ -4,11 +4,11 @@
 
 **[Português: vídeo de 56 segundos](intro.pt-BR.mp4) · [English: 56-second video](intro.mp4)**
 
-The opening follows the data from a private choice to a publicly checkable result: encrypted ballot, receipt and decision, signed batch on the blockchain, encrypted sum, opening of the total, and independent verification. Each scene shows one transformation and a short reason for it, rather than presenting all the components at once. The artwork uses neutral tones, restrained color accents and regular-weight typography. The video has on-screen captions and no audio. The README embeds an animated GIF that plays automatically. Open the linked MP4 in a video player to pause, replay or seek; the inline GIF loops without playback controls.
+The opening follows the data from a private choice to a publicly checkable result: encrypted ballot, receipt and decision, signed batch on the blockchain, encrypted sum, opening of the total, and independent verification. Each diagram shows what happens to the data; its headline and caption explain why the step matters: privacy, committing before a test, publicly checkable publication rules, counting without exposing choices, splitting decryption authority, and independent verification. These are reasons for the proposed design, not a claim that blockchain is the only possible public-record system. The artwork uses neutral tones, restrained color accents and regular-weight typography. The video has on-screen captions and no audio. The README embeds an animated GIF that plays automatically. Open the linked MP4 in a video player to pause, replay or seek; the inline GIF loops without playback controls.
 
 A sequência acompanha os dados: a escolha vira uma cédula cifrada; o recibo sai antes de confirmar ou testar; o lote assinado vai para a blockchain após o encerramento; as cédulas são somadas ainda cifradas; três guardiões permitem abrir o total; e um verificador confere as provas, a inclusão do recibo fornecido e a apuração. A última cena reúne o que pode ser conferido. `R7` é apenas um código simbólico para acompanhar o exemplo, não uma prova criptográfica ou recibo real. A explicação é ilustrativa. A gravação de terminal abaixo é a execução real.
 
-[`intro.svg`](intro.svg) and [`intro.pt-BR.svg`](intro.pt-BR.svg) remain the authoritative, self-contained artwork and animation sources. The MP4s and PNG posters are generated from those exact SVGs; the inline GIFs are converted from the MP4s, not maintained as a second presentation. Each scene lasts eight seconds. Essential captions appear at the start and remain readable. The SVGs show the complete summary in reduced-motion mode; GIF playback does not follow that preference. The SVGs need no JavaScript, downloaded artwork or external fonts.
+[`intro.svg`](intro.svg) and [`intro.pt-BR.svg`](intro.pt-BR.svg) remain the authoritative, self-contained artwork and animation sources. The MP4s, PNG posters and inline GIFs all come from the same lossless SVG-rendered frames, not from separate presentations or a second lossy video conversion. Each scene lasts eight seconds. Essential captions appear at the start and remain readable. The SVGs show the complete summary in reduced-motion mode; GIF playback does not follow that preference. The SVGs need no JavaScript, downloaded artwork or external fonts.
 
 ### Reproduce the explanation
 
@@ -20,7 +20,7 @@ uv run python -m demo.render_intro --lang en --output-root "$work/en" --workers 
 uv run python -m demo.render_intro --lang pt-BR --output-root "$work/pt-BR" --workers 4
 ```
 
-The renderer creates its own browser profiles and local frame directories; it does not use your browser session, a web server, Anvil, Docker or an external service. `--output-root` must not exist. Use `--chrome /path/to/browser` if Chrome is not found automatically. The source hash and render settings are retained in `render.json`, alongside the frames and scene screenshots. The two language renders can run concurrently on a machine with sufficient CPU budget; worker counts share that budget.
+The renderer creates its own browser profiles and local frame directories; it does not use your browser session, a web server, Anvil, Docker or an external service. `--output-root` must not exist. Use `--chrome /path/to/browser` if Chrome is not found automatically. The source hash and render settings are retained in `render.json`, alongside the frames and scene screenshots. The two language renders can run concurrently on a machine with sufficient CPU budget; worker counts share that budget. MP4 encoding pins H.264 CRF 16, the slow preset and animation tuning, retaining broadly compatible `yuv420p`. A solid neutral background avoids near-black gradient bands. Capture uses a native window larger than the canvas and an explicit screenshot clip, then normalizes Retina pixels to 1000×600. Do not replace this with virtual device-metrics resizing without checking every frame: on Chrome 155/macOS, a virtual canvas larger than the native view produced intermittent tiled copies of the page before encoding.
 
 After checking the generated videos, these commands replace the derived README assets:
 
@@ -31,15 +31,17 @@ cp "$work/pt-BR/intro.mp4" docs/intro.pt-BR.mp4
 cp "$work/pt-BR/poster.png" docs/intro.pt-BR.png
 ```
 
-Generate the inline animations from those videos (ffmpeg 7.1.1, 1000×600, 10 fps, 56 seconds, infinite loop):
+Generate the inline animations directly from the lossless frames (ffmpeg 7.1.1, 1000×600, 10 fps, 56 seconds, infinite loop). `-framerate 12` matches the renderer default. Do not use the MP4 as the GIF source: it carries video quantization noise into the palette. Disabling dithering also avoids checkerboard textures on neutral surfaces.
 
 ```sh
-for suffix in "" ".pt-BR"; do
-  ffmpeg -nostdin -v error -n -threads 2 \
-    -i "docs/intro${suffix}.mp4" -filter_complex_threads 2 \
-    -filter_complex '[0:v]fps=10,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=3:diff_mode=rectangle[v]' \
-    -map '[v]' -threads 1 -loop 0 "$work/intro${suffix}.gif"
-  cp "$work/intro${suffix}.gif" "docs/intro${suffix}.gif"
+for lang in en pt-BR; do
+  suffix=""
+  if [ "$lang" = pt-BR ]; then suffix=".pt-BR"; fi
+  ffmpeg -nostdin -v error -n -threads 2 -framerate 12 \
+    -i "$work/$lang/frames/frame-%06d.png" -filter_complex_threads 2 \
+    -filter_complex '[0:v]fps=10,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle[v]' \
+    -map '[v]' -threads 1 -loop 0 "$work/$lang/intro.gif" && \
+    cp "$work/$lang/intro.gif" "docs/intro${suffix}.gif"
 done
 ```
 
