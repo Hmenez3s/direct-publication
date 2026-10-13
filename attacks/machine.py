@@ -7,6 +7,12 @@ from urna.crypto import make_ballot, verify_opening
 from urna.schema import ElectionManifest, SpoiledBallot, ballot_commitment
 
 
+def _compare_intent(remembered_choice: int, opened_choice: int) -> None:
+    """Model a voter's separate comparison, not a cryptographic intent oracle."""
+    if opened_choice != remembered_choice:
+        raise ValueError("valid TEST opening differs from voter intent")
+
+
 def demonstrate(manifest: ElectionManifest) -> None:
     remembered_choice = 0
     ballot, randomness = make_ballot(manifest, 1)
@@ -23,6 +29,15 @@ def demonstrate(manifest: ElectionManifest) -> None:
             spoofed_test_opening.choice_index,
             spoofed_test_opening.randomness,
         ),
+    )
+    # A truthful opening of the substituted choice passes the cryptography.
+    # Detection now depends on an independent comparison with remembered intent.
+    verify_opening(manifest, ballot, 1, randomness)
+    assert_detected(
+        "machine-intent",
+        "valid TEST opening reveals South while the voter intended North",
+        "differs from voter intent",
+        lambda: _compare_intent(remembered_choice, 1),
     )
 
 

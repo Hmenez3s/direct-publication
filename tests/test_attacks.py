@@ -14,6 +14,27 @@ def test_machine_attack_uses_valid_ballot_and_exposes_opening_mismatch(capsys):
     output = capsys.readouterr().out
     assert "FAULT:" in output and "DETECTED:" in output
     assert "invalid opening" in output
+    assert "differs from voter intent" in output
+    assert output.count("DETECTED:") == 2
+
+
+def test_valid_substituted_opening_passes_crypto_before_intent_check(monkeypatch):
+    accepted_choices = []
+    real_verify = machine.verify_opening
+
+    def record_valid_opening(manifest, ballot, choice, randomness):
+        real_verify(manifest, ballot, choice, randomness)
+        accepted_choices.append(choice)
+
+    monkeypatch.setattr(machine, "verify_opening", record_valid_opening)
+    machine.demonstrate(offline_manifest())
+    assert accepted_choices == [1]
+
+
+def test_missing_independent_intent_check_does_not_detect_substitution(monkeypatch):
+    monkeypatch.setattr(machine, "_compare_intent", lambda *_args: None)
+    with pytest.raises(AssertionError, match="was not detected"):
+        machine.demonstrate(offline_manifest())
 
 
 def test_double_vote_has_fresh_valid_bit_proofs_and_fails_sum_proof(capsys):
