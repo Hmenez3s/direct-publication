@@ -178,6 +178,9 @@ def _render_worker(
         "--disable-background-networking",
         "--disable-extensions",
         "--disable-sync",
+        # Ephemeral render profiles must not read or create macOS Keychain items.
+        "--use-mock-keychain",
+        "--password-store=basic",
         "--disable-default-apps",
         "--disable-component-update",
         "--disable-features=MediaRouter",
