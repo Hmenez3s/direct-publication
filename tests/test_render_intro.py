@@ -230,8 +230,14 @@ def test_intro_sources_are_one_continuous_story() -> None:
     import xml.etree.ElementTree as ET
 
     expected = {
-        "docs/intro.svg": ("Brazil", "offline", "bulletin"),
-        "docs/intro.pt-BR.svg": ("brasileira", "offline", "boletim"),
+        "docs/intro.svg": ("Brazil", "offline", "bulletin", "goes online", "no intermediary"),
+        "docs/intro.pt-BR.svg": (
+            "brasileira",
+            "offline",
+            "boletim",
+            "fica online",
+            "sem intermediário",
+        ),
     }
     for name, comparison_terms in expected.items():
         source = (Path(__file__).resolve().parents[1] / name).read_text(encoding="utf-8")
