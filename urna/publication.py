@@ -1,11 +1,11 @@
-"""Choose which bytes to submit. The board decides whether they are accepted.
+"""Choose a locally valid source while the machine has not published.
 
-Direct submits in-memory bytes once, at the close, and does not retry. Carried
-waits and submits the transported file once. It does not read memory. Hybrid
-submits memory at the close. It uses a later slot only when that first attempt
-was not rejected: memory if it is still there, otherwise the file. A rejected
-attempt is not retried. No strategy sends without the machine key, a connection,
-a reachable board, and an open deadline. Possession of the file is not a key.
+These policies share one validation rule, both slots, and one recovery rule.
+A source is eligible only when its bytes still match the machine signature.
+Nothing is sent without the machine key, a connection, a reachable board, and
+an open deadline. A source is not sent again after this machine has published.
+The policies differ only in which sources they are willing to read. They do
+not decide whether the board accepts the bytes.
 """
 
 from __future__ import annotations
@@ -14,77 +14,69 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-class Strategy(Enum):
-    """Which publication rule is being followed."""
+class Policy(Enum):
+    """Which locally valid sources a publisher may read."""
 
-    DIRECT = "direct"
-    CARRIED = "carried"
-    HYBRID = "hybrid"
+    MEMORY = "memory"
+    FILE = "file"
+    EITHER = "either"
 
 
 class Source(Enum):
-    """Where the bytes for one attempt come from."""
+    """Where an eligible attempt reads its bytes."""
 
     MEMORY = "memory"
-    CARRIER = "carrier"
+    FILE = "file"
 
 
 @dataclass(frozen=True, slots=True)
 class Observation:
-    """What one strategy can see at one slot. This is not a board receipt."""
+    """What one policy can see at one slot. This is not a board receipt."""
 
     slot: int
-    memory_present: bool
-    carrier_readable: bool
+    memory_valid: bool
+    file_valid: bool
     key_present: bool
     link_up: bool
     board_reachable: bool
     deadline_open: bool
-    prior_included: bool
-    prior_rejected: bool
+    already_published: bool
 
 
-def choose(strategy: Strategy, observation: Observation) -> Source | None:
-    """Return the next source, or nothing if this strategy does not send now."""
-    if not isinstance(strategy, Strategy):
-        raise ValueError("unknown publication strategy")
+def choose(policy: Policy, observation: Observation) -> Source | None:
+    """Return the next locally valid source, or nothing if this policy waits."""
+    if not isinstance(policy, Policy):
+        raise ValueError("unknown publication policy")
     if not isinstance(observation, Observation):
         raise TypeError("observation must be an Observation")
     if type(observation.slot) is not int or observation.slot not in (0, 1):
         raise ValueError("slot must be 0 or 1")
     flags = (
-        "memory_present",
-        "carrier_readable",
+        "memory_valid",
+        "file_valid",
         "key_present",
         "link_up",
         "board_reachable",
         "deadline_open",
-        "prior_included",
-        "prior_rejected",
+        "already_published",
     )
     for name in flags:
         if type(getattr(observation, name)) is not bool:
             raise ValueError(f"{name} must be a bool")
     if (
-        observation.prior_included
+        observation.already_published
         or not observation.key_present
         or not observation.link_up
         or not observation.board_reachable
         or not observation.deadline_open
     ):
         return None
-    if strategy is Strategy.DIRECT:
-        if observation.slot == 0 and observation.memory_present:
-            return Source.MEMORY
-        return None
-    if strategy is Strategy.CARRIED:
-        if observation.slot == 1 and observation.carrier_readable:
-            return Source.CARRIER
-        return None
-    if observation.prior_rejected:
-        return None
-    if observation.memory_present:
+    if policy is Policy.MEMORY:
+        return Source.MEMORY if observation.memory_valid else None
+    if policy is Policy.FILE:
+        return Source.FILE if observation.file_valid else None
+    if observation.memory_valid:
         return Source.MEMORY
-    if observation.slot == 1 and observation.carrier_readable:
-        return Source.CARRIER
+    if observation.file_valid:
+        return Source.FILE
     return None

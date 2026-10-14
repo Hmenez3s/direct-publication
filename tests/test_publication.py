@@ -1,16 +1,17 @@
-"""Run direct, carried, and hybrid publication from the same board state.
+"""Compare source policies and the contract's recovery boundary.
 
-Each strategy starts from one pre-publication snapshot. A fault is applied
-before that strategy sends. Connection loss and an unreachable board send
-nothing. A contract rejection is a transaction the board reverts. Deleting
-files after a successful post is recorded separately and is not recovery.
+Memory-only, file-only, and either-source use the same local signature check,
+the same two slots, and the same rule: do not send after this machine has
+published. Invalid bytes are not sent. A separate run skips that local check
+and mines the reverting transaction.
+Receipt gas is recorded as returned. The call trace records whether signature
+recovery ran. Equal receipt gas is not a measured difference in execution cost.
+Each case starts from the same unpublished snapshot.
 """
 
 from __future__ import annotations
 
-import json
-import tempfile
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -20,11 +21,12 @@ from web3.exceptions import ContractCustomError, ContractLogicError, Web3RPCErro
 
 from attacks.common import prepare_scenario
 from demo.chain import advance_time, read_evidence
-from urna.publication import Observation, Source, Strategy, choose
+from urna.publication import Observation, Policy, Source, choose
+from urna.signing import verify_batch_signature
 from urna.transport import PhysicalSwitchSimulator, export_carrier, import_carrier
 from verifier.audit import audit_board
 
-STRATEGIES = (Strategy.DIRECT, Strategy.CARRIED, Strategy.HYBRID)
+POLICIES = (Policy.MEMORY, Policy.FILE, Policy.EITHER)
 REVERT_NAMES = (
     "UnregisteredMachine",
     "BatchWindowClosed",
@@ -34,113 +36,97 @@ REVERT_NAMES = (
     "WrongSigner",
 )
 SELECTORS = {"0x" + keccak(text=f"{name}()")[:4].hex(): name for name in REVERT_NAMES}
+GAS_LIMIT = 5_000_000
 
 
 def _observation(**overrides: object) -> Observation:
     values: dict[str, object] = {
         "slot": 0,
-        "memory_present": True,
-        "carrier_readable": True,
+        "memory_valid": True,
+        "file_valid": True,
         "key_present": True,
         "link_up": True,
         "board_reachable": True,
         "deadline_open": True,
-        "prior_included": False,
-        "prior_rejected": False,
+        "already_published": False,
     }
     values.update(overrides)
     return Observation(**values)  # type: ignore[arg-type]
 
 
-def test_strategy_rules_do_not_treat_a_file_as_a_key() -> None:
-    assert choose(Strategy.DIRECT, _observation()) is Source.MEMORY
-    assert choose(Strategy.CARRIED, _observation()) is None
-    assert choose(Strategy.HYBRID, _observation()) is Source.MEMORY
-    later = _observation(slot=1)
-    assert choose(Strategy.DIRECT, later) is None
-    assert choose(Strategy.CARRIED, later) is Source.CARRIER
-    assert choose(Strategy.HYBRID, later) is Source.MEMORY
-    fallback = _observation(slot=1, memory_present=False)
-    assert choose(Strategy.DIRECT, fallback) is None
-    assert choose(Strategy.HYBRID, fallback) is Source.CARRIER
-    rejected = _observation(slot=1, prior_rejected=True)
-    assert choose(Strategy.HYBRID, rejected) is None
-    for strategy in STRATEGIES:
-        assert choose(strategy, _observation(key_present=False)) is None
-        assert choose(strategy, _observation(link_up=False)) is None
-        assert choose(strategy, _observation(board_reachable=False)) is None
-        assert choose(strategy, _observation(deadline_open=False)) is None
-        assert choose(strategy, _observation(prior_included=True)) is None
+def test_policies_share_validation_slots_and_recovery() -> None:
+    assert choose(Policy.MEMORY, _observation()) is Source.MEMORY
+    assert choose(Policy.FILE, _observation()) is Source.FILE
+    assert choose(Policy.EITHER, _observation()) is Source.MEMORY
+    assert choose(Policy.EITHER, _observation(memory_valid=False)) is Source.FILE
+    later = _observation(slot=1, memory_valid=False)
+    assert choose(Policy.MEMORY, later) is None
+    assert choose(Policy.FILE, later) is Source.FILE
+    assert choose(Policy.EITHER, later) is Source.FILE
+    for policy in POLICIES:
+        assert choose(policy, _observation(key_present=False)) is None
+        assert choose(policy, _observation(link_up=False)) is None
+        assert choose(policy, _observation(board_reachable=False)) is None
+        assert choose(policy, _observation(deadline_open=False)) is None
+        assert choose(policy, _observation(already_published=True)) is None
+        assert choose(policy, _observation(memory_valid=False, file_valid=False)) is None
     with pytest.raises(ValueError, match="slot"):
-        choose(Strategy.DIRECT, _observation(slot=2))
+        choose(Policy.MEMORY, _observation(slot=2))
     with pytest.raises(ValueError, match="bool"):
-        choose(Strategy.DIRECT, _observation(key_present=1))
+        choose(Policy.MEMORY, _observation(key_present=1))
 
 
 @dataclass(frozen=True, slots=True)
 class Fault:
-    """Faults applied to a copy of the starting state, before sending."""
+    """Changes applied to a copy of the starting state before any send."""
 
     memory_present: bool = True
     memory_altered: bool = False
-    carrier_present: bool = True
-    carrier_altered: bool = False
+    file_present: bool = True
+    file_altered: bool = False
     key_present: bool = True
     link: tuple[bool, bool] = (True, True)
     board: tuple[bool, bool] = (True, True)
-    close_before: bool = False
     close_before_slot1: bool = False
-    drop_memory_after_slot0: bool = False
 
 
 @dataclass(frozen=True, slots=True)
 class Run:
     scenario: str
-    strategy: str
+    policy: str
     included: bool
-    cast_count: int | None
     sent: int
-    local_rejects: int
-    reverts: tuple[str, ...]
+    skipped_invalid: int
     gas: tuple[int, ...]
     slots: tuple[int, ...]
+    source: str | None
 
 
 CASES = (
-    ("quiet", Fault()),
-    ("copies lost before send", Fault(carrier_present=False)),
-    ("memory lost, copy kept", Fault(memory_present=False)),
+    ("both intact", Fault()),
+    ("file absent", Fault(file_present=False)),
+    ("memory absent", Fault(memory_present=False)),
+    ("memory altered, file intact", Fault(memory_altered=True)),
+    ("file altered, memory intact", Fault(file_altered=True)),
+    ("both altered", Fault(memory_altered=True, file_altered=True)),
     ("link down, then up", Fault(link=(False, True))),
-    ("board down, then up", Fault(board=(False, True))),
-    ("key missing", Fault(key_present=False)),
-    ("window already closed", Fault(close_before=True)),
-    ("board down through the window", Fault(board=(False, False))),
-    (
-        "link returns after memory is lost",
-        Fault(link=(False, True), drop_memory_after_slot0=True),
-    ),
-    ("memory altered, copy intact", Fault(memory_altered=True)),
-    ("only copy altered", Fault(memory_present=False, carrier_altered=True)),
-    (
-        "link down, window closes before retry",
-        Fault(link=(False, True), close_before_slot1=True),
-    ),
+    ("link down, deadline closes", Fault(link=(False, True), close_before_slot1=True)),
+    ("key absent", Fault(key_present=False)),
+    ("board unreachable", Fault(board=(False, False))),
 )
 
-# Hypothesis for this retry rule. The assertions below check the chain, not choose().
+# Same validation and the same two slots. The expected difference is the source.
 INCLUDED = {
-    "quiet": (True, True, True),
-    "copies lost before send": (True, False, True),
-    "memory lost, copy kept": (False, True, True),
-    "link down, then up": (False, True, True),
-    "board down, then up": (False, True, True),
-    "key missing": (False, False, False),
-    "window already closed": (False, False, False),
-    "board down through the window": (False, False, False),
-    "link returns after memory is lost": (False, True, True),
-    "memory altered, copy intact": (False, True, False),
-    "only copy altered": (False, False, False),
-    "link down, window closes before retry": (False, False, False),
+    "both intact": (True, True, True),
+    "file absent": (True, False, True),
+    "memory absent": (False, True, True),
+    "memory altered, file intact": (False, True, True),
+    "file altered, memory intact": (True, False, True),
+    "both altered": (False, False, False),
+    "link down, then up": (True, True, True),
+    "link down, deadline closes": (False, False, False),
+    "key absent": (False, False, False),
+    "board unreachable": (False, False, False),
 }
 
 
@@ -157,21 +143,19 @@ def _revert(chain: object, snap: str) -> None:
         raise RuntimeError(f"revert failed: {response}")
 
 
-def _error_name(exc: BaseException) -> str:
-    found = _selector(exc)
-    if found is not None:
-        return SELECTORS[found]
-    return f"unclassified: {exc}"
-
-
 def _selector(exc: BaseException) -> str | None:
     values: list[object] = [getattr(exc, "data", None), *getattr(exc, "args", ())]
     for value in values:
         if isinstance(value, dict):
             values.append(value.get("data"))
             values.append(value.get("message"))
-        text = _hex_text(value)
-        if text is None:
+        if isinstance(value, bytes):
+            text = "0x" + value.hex()
+        elif isinstance(value, str):
+            text = value
+        else:
+            text = None
+        if not isinstance(text, str) or "0x" not in text.lower():
             continue
         lowered = text.lower()
         for selector in SELECTORS:
@@ -180,33 +164,75 @@ def _selector(exc: BaseException) -> str | None:
     return None
 
 
-def _hex_text(value: object) -> str | None:
-    if isinstance(value, bytes):
-        return "0x" + value.hex()
-    if isinstance(value, str) and "0x" in value.lower():
-        return value
-    return None
-
-
-def _send(
-    prepared: object, payload: bytes, signature: str, account: object
-) -> tuple[bool, int | None, str | None]:
+def _call_revert(prepared: object, payload: bytes, signature: str, account: object) -> str:
     board = prepared.board  # type: ignore[attr-defined]
-    chain = prepared.handle  # type: ignore[attr-defined]
-    function = board.functions.postBatch(payload, bytes.fromhex(signature))
     sender = Web3.to_checksum_address(account.address)  # type: ignore[attr-defined]
     try:
-        tx_hash = function.transact({"from": sender})
+        board.functions.postBatch(payload, bytes.fromhex(signature)).call({"from": sender})
     except (ContractCustomError, ContractLogicError, Web3RPCError) as exc:
-        return False, None, _error_name(exc)
+        found = _selector(exc)
+        if found is None:
+            raise AssertionError(f"unclassified revert: {exc!r}") from exc
+        return SELECTORS[found]
+    raise AssertionError("call accepted a payload that was expected to revert")
+
+
+def _subcalls(chain: object, tx_hash: object) -> int:
+    """Count nested calls. Early reverts have none; signature recovery has one."""
+    web3 = chain.web3  # type: ignore[attr-defined]
+    if hasattr(tx_hash, "to_0x_hex"):
+        hexh = tx_hash.to_0x_hex()
+    else:
+        hexh = Web3.to_hex(tx_hash)
+    trace = web3.provider.make_request("debug_traceTransaction", [hexh, {"tracer": "callTracer"}])
+    if not isinstance(trace, dict):
+        raise AssertionError("call trace was not an object")
+    result = trace.get("result")
+    if not isinstance(result, dict):
+        raise AssertionError(f"call trace missing: {trace!r}"[:400])
+    calls = result.get("calls") or []
+    if not isinstance(calls, list):
+        raise AssertionError("call trace calls is not a list")
+    return len(calls)
+
+
+def _mine(
+    prepared: object, payload: bytes, signature: str, account: object
+) -> tuple[int, int, int]:
+    """Mine even on revert. Return status, receipt gas, and nested-call count."""
+    chain = prepared.handle  # type: ignore[attr-defined]
+    board = prepared.board  # type: ignore[attr-defined]
+    sender = Web3.to_checksum_address(account.address)  # type: ignore[attr-defined]
+    nonce = chain.web3.eth.get_transaction_count(sender)
+    tx = board.functions.postBatch(payload, bytes.fromhex(signature)).build_transaction(
+        {
+            "from": sender,
+            "nonce": nonce,
+            "gas": GAS_LIMIT,
+            "chainId": chain.chain_id,
+        }
+    )
+    signed = account.sign_transaction(tx)  # type: ignore[attr-defined]
+    raw = getattr(signed, "raw_transaction", None)
+    if raw is None:
+        raw = signed.rawTransaction  # type: ignore[attr-defined]
+    tx_hash = chain.web3.eth.send_raw_transaction(raw)
     receipt = chain.web3.eth.wait_for_transaction_receipt(tx_hash)
-    gas = int(receipt["gasUsed"])
-    if int(receipt["status"]) != 1:
-        return False, gas, "status-0"
-    return True, gas, None
+    return int(receipt["status"]), int(receipt["gasUsed"]), _subcalls(chain, tx_hash)
 
 
-def _close_and_audit(prepared: object, payload: bytes) -> int | None:
+def _posted(prepared: object) -> bool:
+    machine = prepared.machine_accounts[0]  # type: ignore[attr-defined]
+    return bool(prepared.board.functions.batchPosted(machine.address).call())  # type: ignore[attr-defined]
+
+
+def _deadline_open(prepared: object) -> bool:
+    chain = prepared.handle  # type: ignore[attr-defined]
+    now = int(chain.web3.eth.get_block("latest")["timestamp"])
+    return now <= prepared.manifest.batch_deadline  # type: ignore[attr-defined]
+
+
+def _audit_payload(prepared: object, intact: bytes) -> bytes | None:
     chain = prepared.handle  # type: ignore[attr-defined]
     manifest = prepared.manifest  # type: ignore[attr-defined]
     now = int(chain.web3.eth.get_block("latest")["timestamp"])
@@ -221,80 +247,88 @@ def _close_and_audit(prepared: object, payload: bytes) -> int | None:
             raise
         return None
     assert len(evidence.batches) == 1
-    assert bytes.fromhex(evidence.batches[0].payload_hex) == payload
-    return int(audited.aggregate.cast_count)
+    assert int(audited.aggregate.cast_count) == 1
+    return bytes.fromhex(evidence.batches[0].payload_hex)
 
 
-def _deadline_open(prepared: object) -> bool:
-    chain = prepared.handle  # type: ignore[attr-defined]
-    now = int(chain.web3.eth.get_block("latest")["timestamp"])
-    return now <= prepared.manifest.batch_deadline  # type: ignore[attr-defined]
+def _valid(prepared: object, payload: bytes, signature: str) -> bool:
+    manifest = prepared.manifest  # type: ignore[attr-defined]
+    machine = prepared.machine_accounts[0]  # type: ignore[attr-defined]
+    return verify_batch_signature(
+        manifest.chain_id,
+        manifest.board_address,
+        manifest.election_id,
+        payload,
+        signature,
+        machine.address[2:].lower(),
+    )
 
 
 def _run(
     prepared: object,
     root: Path,
     name: str,
-    strategy: Strategy,
+    policy: Policy,
     fault: Fault,
     envelope: bytes,
-    payload: bytes,
+    intact: bytes,
     signature: str,
 ) -> Run:
-    if fault.close_before:
-        advance_time(prepared.handle, prepared.manifest.batch_deadline + 1)  # type: ignore[attr-defined]
-    carrier_path = root / f"{name}-{strategy.value}.bin".replace(" ", "-")
-    if fault.carrier_present:
+    carrier = root / f"{name}-{policy.value}.bin".replace(" ", "-")
+    if fault.file_present:
         data = bytearray(envelope)
-        if fault.carrier_altered:
+        if fault.file_altered:
             data[-1] ^= 0x01
-        carrier_path.write_bytes(data)
-    elif carrier_path.exists():
-        carrier_path.unlink()
-    memory = bytearray(payload) if fault.memory_present else None
+        carrier.write_bytes(data)
+    elif carrier.exists():
+        carrier.unlink()
+    memory = bytearray(intact) if fault.memory_present else None
     if memory is not None and fault.memory_altered:
         memory[-1] ^= 0x01
-    prior_included = False
-    prior_rejected = False
     sent = 0
-    local_rejects = 0
-    reverts: list[str] = []
+    skipped: set[str] = set()
     gas: list[int] = []
     slots: list[int] = []
+    used: str | None = None
     for slot in (0, 1):
-        if slot == 1 and fault.drop_memory_after_slot0:
-            memory = None
         if slot == 1 and fault.close_before_slot1 and _deadline_open(prepared):
             advance_time(prepared.handle, prepared.manifest.batch_deadline + 1)  # type: ignore[attr-defined]
+        memory_bytes = bytes(memory) if memory is not None else None
+        memory_valid = memory_bytes is not None and _valid(prepared, memory_bytes, signature)
+        file_valid = False
+        file_bytes: bytes | None = None
+        if carrier.is_file():
+            try:
+                loaded = import_carrier(carrier, prepared.manifest)  # type: ignore[attr-defined]
+            except (OSError, ValueError):
+                file_valid = False
+            else:
+                file_bytes = bytes.fromhex(loaded.payload_hex)
+                file_valid = _valid(prepared, file_bytes, loaded.signature)
+        if policy is not Policy.FILE and memory is not None and not memory_valid:
+            skipped.add("memory")
+        reads_file = policy is Policy.FILE or (policy is Policy.EITHER and not memory_valid)
+        if reads_file and carrier.is_file() and not file_valid:
+            skipped.add("file")
         source = choose(
-            strategy,
+            policy,
             Observation(
                 slot,
-                memory is not None,
-                carrier_path.is_file(),
+                memory_valid,
+                file_valid,
                 fault.key_present,
                 fault.link[slot],
                 fault.board[slot],
                 _deadline_open(prepared),
-                prior_included,
-                prior_rejected,
+                _posted(prepared),
             ),
         )
         if source is None:
             continue
-        if source is Source.MEMORY:
-            attempt: bytes | None = bytes(memory) if memory is not None else None
-            if attempt is None:
-                raise AssertionError("strategy selected memory that is not present")
-        else:
-            try:
-                loaded = import_carrier(carrier_path, prepared.manifest)  # type: ignore[attr-defined]
-            except (OSError, ValueError):
-                local_rejects += 1
-                prior_rejected = True
-                continue
-            attempt = bytes.fromhex(loaded.payload_hex)
-        included, used, error = _send(
+        attempt = memory_bytes if source is Source.MEMORY else file_bytes
+        if attempt is None or not _valid(prepared, attempt, signature):
+            raise AssertionError("policy selected bytes that are not locally valid")
+        status, used_gas, _calls = _mine(
             prepared,
             attempt,
             signature,
@@ -302,46 +336,32 @@ def _run(
         )
         sent += 1
         slots.append(slot)
-        if included:
-            prior_included = True
-            if used is None:
-                raise AssertionError("included transaction has no gas")
-            gas.append(used)
-        else:
-            prior_rejected = True
-            reverts.append(error or "unknown")
-    cast_count = _close_and_audit(prepared, payload)
-    included_now = cast_count == 1
-    if prior_included != included_now:
-        raise AssertionError(f"{name} {strategy.value}: receipt and audit disagree")
-    return Run(
-        name,
-        strategy.value,
-        included_now,
-        cast_count,
-        sent,
-        local_rejects,
-        tuple(reverts),
-        tuple(gas),
-        tuple(slots),
-    )
+        gas.append(used_gas)
+        used = source.value
+        if status != 1:
+            raise AssertionError(f"{name} {policy.value}: locally valid bytes reverted")
+    found = _audit_payload(prepared, intact)
+    included = found == intact
+    if included != _posted(prepared):
+        raise AssertionError(f"{name} {policy.value}: audit and batchPosted disagree")
+    return Run(name, policy.value, included, sent, len(skipped), tuple(gas), tuple(slots), used)
 
 
-def test_strategies_face_each_fault_before_publication(tmp_path: Path) -> None:
+def test_equal_policies_and_mined_recovery(tmp_path: Path) -> None:
     with prepare_scenario(choices=(0,)) as prepared:
         signed = prepared.signed_batches[0]
-        payload = bytes.fromhex(signed.payload_hex)
+        intact = bytes.fromhex(signed.payload_hex)
         signature = signed.signature
         switch = PhysicalSwitchSimulator()
         switch.poll_worker_seal(prepared.machine)
         envelope = export_carrier(
             switch, prepared.machine, prepared.manifest, tmp_path / "original.bin"
         )
-        assert import_carrier(tmp_path / "original.bin", prepared.manifest).to_bytes() == envelope
-        assert bytes.fromhex(signed.payload_hex) == payload
+        machine = prepared.machine_accounts[0]
+        other = prepared.handle.accounts[8]
         results: list[Run] = []
         for name, fault in CASES:
-            for strategy in STRATEGIES:
+            for policy in POLICIES:
                 snap = _snapshot(prepared.handle)
                 try:
                     results.append(
@@ -349,101 +369,130 @@ def test_strategies_face_each_fault_before_publication(tmp_path: Path) -> None:
                             prepared,
                             tmp_path,
                             name,
-                            strategy,
+                            policy,
                             fault,
                             envelope,
-                            payload,
+                            intact,
                             signature,
                         )
                     )
                 finally:
                     _revert(prepared.handle, snap)
-        forced = _forced_rejections(prepared, payload, signature)
-        print(json.dumps({"runs": [asdict(item) for item in results], "forced": forced}, indent=2))
-        by_name = {name: {} for name, _fault in CASES}
+        recovery = _recovery(prepared, intact, signature, machine, other)
+        by_name: dict[str, dict[str, Run]] = {name: {} for name, _fault in CASES}
         for item in results:
-            by_name[item.scenario][item.strategy] = item
+            by_name[item.scenario][item.policy] = item
         included_gas = {gas for item in results for gas in item.gas}
-        assert len(included_gas) == 1
+        assert included_gas == {recovery["included gas"]}
         for name, _fault in CASES:
-            observed = tuple(by_name[name][strategy.value].included for strategy in STRATEGIES)
+            observed = tuple(by_name[name][policy.value].included for policy in POLICIES)
             assert observed == INCLUDED[name], (name, observed)
-        altered = by_name["memory altered, copy intact"]
-        assert altered["direct"].reverts[0] in {"WrongSigner", "InvalidSignature"}
-        assert altered["hybrid"].reverts == altered["direct"].reverts
-        assert altered["carried"].reverts == ()
-        assert altered["hybrid"].sent == 1
-        lost = by_name["only copy altered"]
-        assert lost["carried"].local_rejects == 1 and lost["carried"].sent == 0
-        assert lost["hybrid"].local_rejects == 1 and lost["hybrid"].sent == 0
-        quiet = by_name["quiet"]
-        assert quiet["direct"].slots == (0,)
-        assert quiet["carried"].slots == (1,)
-        assert quiet["hybrid"].slots == (0,)
-        assert forced["after deadline"] == "BatchWindowClosed"
-        assert forced["other account"] == "UnregisteredMachine"
-        assert forced["altered bytes"] in {"WrongSigner", "InvalidSignature"}
-        assert forced["second post"] == "BatchAlreadyPosted"
-        assert forced["second post cast"] == 1
-        assert forced["retained cast"] == 1
-        assert forced["included gas"] == next(iter(included_gas))
+        altered = by_name["memory altered, file intact"]
+        assert altered["memory"].sent == 0 and altered["memory"].skipped_invalid == 1
+        assert altered["either"].source == "file" and altered["either"].sent == 1
+        assert altered["either"].skipped_invalid == 1
+        outage = by_name["link down, then up"]
+        assert all(item.slots == (1,) and item.sent == 1 for item in outage.values())
+        quiet = by_name["both intact"]
+        assert all(item.slots == (0,) and item.sent == 1 for item in quiet.values())
+        assert recovery["wrong signer"] == "WrongSigner"
+        assert recovery["wrong signer posted"] is False
+        assert recovery["recovered payload"] is True
+        assert recovery["second post"] == "BatchAlreadyPosted"
+        assert recovery["second leaves first"] is True
+        assert recovery["after deadline"] == "BatchWindowClosed"
+        assert recovery["late posted"] is False
+        assert recovery["other account"] == "UnregisteredMachine"
+        assert recovery["other posted"] is False
+        assert recovery["machine after other"] is True
+        assert recovery["wrong signer calls"] == 1
+        assert recovery["included calls"] == 1
+        assert recovery["second post calls"] == 0
+        assert recovery["after deadline calls"] == 0
+        assert recovery["other account calls"] == 0
+        for key in (
+            "wrong signer gas",
+            "second post gas",
+            "after deadline gas",
+            "other account gas",
+        ):
+            assert recovery[key] == recovery["included gas"]
 
 
-def _forced_rejections(prepared: object, payload: bytes, signature: str) -> dict[str, object]:
-    machine = prepared.machine_accounts[0]  # type: ignore[attr-defined]
-    other = prepared.handle.accounts[8]  # type: ignore[attr-defined]
-    altered = bytearray(payload)
+def _recovery(
+    prepared: object,
+    intact: bytes,
+    signature: str,
+    machine: object,
+    other: object,
+) -> dict[str, object]:
+    altered = bytearray(intact)
     altered[-1] ^= 0x01
     found: dict[str, object] = {}
+
+    def remember(gas: int, calls: int) -> None:
+        if "included gas" in found and (
+            found["included gas"] != gas or found["included calls"] != calls
+        ):
+            raise AssertionError("inclusion receipt changed within the run")
+        found["included gas"] = gas
+        found["included calls"] = calls
+
+    snap = _snapshot(prepared.handle)  # type: ignore[attr-defined]
+    try:
+        found["wrong signer"] = _call_revert(prepared, bytes(altered), signature, machine)
+        status, gas, calls = _mine(prepared, bytes(altered), signature, machine)
+        assert status == 0
+        found["wrong signer gas"] = gas
+        found["wrong signer calls"] = calls
+        found["wrong signer posted"] = _posted(prepared)
+        status, gas, calls = _mine(prepared, intact, signature, machine)
+        assert status == 1 and _posted(prepared)
+        remember(gas, calls)
+        found["recovered payload"] = _audit_payload(prepared, intact) == intact
+    finally:
+        _revert(prepared.handle, snap)  # type: ignore[attr-defined]
+
+    snap = _snapshot(prepared.handle)  # type: ignore[attr-defined]
+    try:
+        status, gas, calls = _mine(prepared, intact, signature, machine)
+        assert status == 1
+        remember(gas, calls)
+        found["second post"] = _call_revert(prepared, intact, signature, machine)
+        status, second_gas, second_calls = _mine(prepared, intact, signature, machine)
+        assert status == 0
+        found["second post gas"] = second_gas
+        found["second post calls"] = second_calls
+        found["second leaves first"] = _audit_payload(prepared, intact) == intact
+    finally:
+        _revert(prepared.handle, snap)  # type: ignore[attr-defined]
 
     snap = _snapshot(prepared.handle)  # type: ignore[attr-defined]
     try:
         advance_time(prepared.handle, prepared.manifest.batch_deadline + 1)  # type: ignore[attr-defined]
-        included, _gas, error = _send(prepared, payload, signature, machine)
-        assert not included
-        found["after deadline"] = error
-        assert _close_and_audit(prepared, payload) is None
+        found["after deadline"] = _call_revert(prepared, intact, signature, machine)
+        status, gas, calls = _mine(prepared, intact, signature, machine)
+        assert status == 0
+        found["after deadline gas"] = gas
+        found["after deadline calls"] = calls
+        found["late posted"] = _posted(prepared)
+        late_name = _call_revert(prepared, intact, signature, machine)
+        assert late_name == "BatchWindowClosed"
     finally:
         _revert(prepared.handle, snap)  # type: ignore[attr-defined]
 
     snap = _snapshot(prepared.handle)  # type: ignore[attr-defined]
     try:
-        included, _gas, error = _send(prepared, payload, signature, other)
-        assert not included
-        found["other account"] = error
-        assert not prepared.board.functions.batchPosted(machine.address).call()  # type: ignore[attr-defined]
-    finally:
-        _revert(prepared.handle, snap)  # type: ignore[attr-defined]
-
-    snap = _snapshot(prepared.handle)  # type: ignore[attr-defined]
-    try:
-        included, _gas, error = _send(prepared, bytes(altered), signature, machine)
-        assert not included
-        found["altered bytes"] = error
-    finally:
-        _revert(prepared.handle, snap)  # type: ignore[attr-defined]
-
-    snap = _snapshot(prepared.handle)  # type: ignore[attr-defined]
-    try:
-        included, gas, error = _send(prepared, payload, signature, machine)
-        assert included and error is None and gas is not None
-        again, _again_gas, again_error = _send(prepared, payload, signature, machine)
-        assert not again
-        found["second post"] = again_error
-        found["included gas"] = gas
-        found["second post cast"] = _close_and_audit(prepared, payload)
-    finally:
-        _revert(prepared.handle, snap)  # type: ignore[attr-defined]
-
-    snap = _snapshot(prepared.handle)  # type: ignore[attr-defined]
-    try:
-        included, _gas, error = _send(prepared, payload, signature, machine)
-        assert included and error is None
-        retained = Path(tempfile.mkdtemp(prefix="urna-retained-")) / "carrier.bin"
-        retained.write_bytes(payload)
-        retained.unlink()
-        assert not retained.exists()
-        found["retained cast"] = _close_and_audit(prepared, payload)
+        found["other account"] = _call_revert(prepared, intact, signature, other)
+        status, gas, calls = _mine(prepared, intact, signature, other)
+        assert status == 0
+        found["other account gas"] = gas
+        found["other account calls"] = calls
+        found["other posted"] = _posted(prepared)
+        status, gas, calls = _mine(prepared, intact, signature, machine)
+        assert status == 1
+        remember(gas, calls)
+        found["machine after other"] = _audit_payload(prepared, intact) == intact
     finally:
         _revert(prepared.handle, snap)  # type: ignore[attr-defined]
     return found
